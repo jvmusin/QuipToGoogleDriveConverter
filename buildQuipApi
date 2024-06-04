@@ -1,0 +1,4 @@
+#!/bin/sh
+
+git clone git@github.com:kenichi-ando/quip-api-java.git
+cd quip-api-java && mvn package -DskipTests

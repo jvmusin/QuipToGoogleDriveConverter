@@ -40,3 +40,9 @@ bin/
 
 ### Mac OS ###
 .DS_Store
+
+### Custom ###
+downloaded/
+src/main/resources/
+tokens/
+quip-api-java/

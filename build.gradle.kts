@@ -1,5 +1,5 @@
 plugins {
-    kotlin("jvm") version "1.9.23"
+    kotlin("jvm") version "2.0.0"
 }
 
 group = "io.github.jvmusin"
@@ -10,6 +10,12 @@ repositories {
 }
 
 dependencies {
+    implementation(files("quip-api-java/target/quip-api-client-jar-with-dependencies.jar"))
+
+    implementation("com.google.api-client:google-api-client:2.0.0")
+    implementation("com.google.oauth-client:google-oauth-client-jetty:1.34.1")
+    implementation("com.google.apis:google-api-services-drive:v3-rev20220815-2.0.0")
+
     testImplementation(kotlin("test"))
 }
 
