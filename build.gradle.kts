@@ -10,7 +10,7 @@ repositories {
 }
 
 dependencies {
-    implementation(files("quip-api-java/target/quip-api-client-jar-with-dependencies.jar"))
+    implementation(files("quip.jar"))
 
     implementation("com.google.api-client:google-api-client:2.0.0")
     implementation("com.google.oauth-client:google-oauth-client-jetty:1.34.1")

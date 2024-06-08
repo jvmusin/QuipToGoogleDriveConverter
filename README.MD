@@ -4,7 +4,7 @@
 
 To use this tool, you have to:
 
-1. Run `buildQuipApi` script to build Quip SDK
+1. Run `downloadQuipApi` script to download and build Quip API Client
 2. Create a personal access token for Quip following [this instruction](https://quip.com/api/personal-token), and put
    the token as plain text into `src/main/resources/quip_access_token.txt` file
 3. Create credentials for Google Drive following
