@@ -26,14 +26,13 @@ IMPORTANT: Add following to the VM options in the Run Configuration:
 
 ### Downloaded Files Structure
 
-Each file is named as its id on Quip, and accompanied by a file ending with `_title.txt` with the file title inside.
-For example, the file may be called `ABACABA.docx`, and there will be a file `ABACABA_title.docx` containing
-text `Kotlin 2.0.20`.
+Each file is named as its id on Quip, and accompanied by a file with the same name and an extension `.json` with all
+info available through Quip API for the folder. This json includes things such as title, owners, last edit date,
+access levels, etc.
+For example, the file may be called `ABACABA.docx`, and there will be a file `ABACABA.json`.
 
 Similarly, all folders are named identical to their id on Quip, and inside every folder there is a file
-named `_title.txt`, which contains name of the folder.
-
-If you have no access to some folder, then the downloaded folder will contain an empty file `_no_access.txt`.
+named `_folder.json`.
 
 ### Quip Rate Limits
 
@@ -42,10 +41,12 @@ Quip has quite tiny rate limits on QPI requests - 50 req per minute / 750 req pe
 It might be impossible to download all the files at the same time, hence the tool supports skipping already downloaded
 files. This way, you can run the Downloader multiple times throughout the day and get more and more files downloaded.
 
-To achieve this, the `_title.txt` file is saved on the disk only when all files in the folder are downloaded. This
-approach allows to quickly understand if there are any non-downloaded files left in the folder.
+To achieve this, the `.json` file for the folder is saved on the disk only when all files in the folder are downloaded.
+This approach allows to quickly understand if there are any non-downloaded files left in the folder.
 
 ## Uploading files to Google Drive
+
+### Disclaimer - This functionality is not properly done yet!
 
 ### How to
 

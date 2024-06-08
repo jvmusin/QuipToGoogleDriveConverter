@@ -1,29 +1,22 @@
 package io.github.jvmusin
 
-import kenichia.quipapi.QuipClient
+import com.google.gson.JsonObject
 import kenichia.quipapi.QuipFolder
 import kenichia.quipapi.QuipThread
 import org.apache.http.client.HttpResponseException
-import java.nio.file.Files
 import java.nio.file.Path
-import java.nio.file.Paths
 import java.nio.file.StandardOpenOption
 import kotlin.io.path.*
 
-fun main() {
-    Downloader.run()
-}
-
 object Downloader {
-    private val logger = getLogger()
-
-    fun run() {
-        QuipClient.enableDebug(true)
-        QuipClient.setAccessToken(javaClass.getResource("/quip_access_token.txt")!!.readText())
-        val kotlinFolderId = "FXfSOQ5OETJh"
-        val downloadedPath = Paths.get("downloaded")
-        processFolder(downloadedPath, kotlinFolderId, emptyList())
+    @JvmStatic
+    fun main(args: Array<String>) {
+        setupQuipClient()
+        processFolder(downloadedPath, KOTLIN_FOLDER_ID, Progress(""))
     }
+
+    private val logger = getLogger()
+    private const val KOTLIN_FOLDER_ID = "FXfSOQ5OETJh"
 
     private enum class QuipThreadType(
         val quipType: QuipThread.Type,
@@ -41,76 +34,94 @@ object Downloader {
         }
     }
 
-    private fun QuipFolder.Node.processThread(path: Path, parentTitles: List<String>) {
-        val folderPath = path.parent
-        if (!folderPath.exists()) {
-            path.createParentDirectories()
-        }
+    data class Progress(private val s: String) {
+        fun named(name: String) = Progress("$s > $name")
+        fun withIndex(index: Int, total: Int) = Progress("$s ($index/$total)")
+        fun action(name: String) = "$s -- $name"
+        override fun toString() = s
+    }
 
-        val downloadedIds = Files.list(folderPath).map { it.nameWithoutExtension }.toList()
-        if (id in downloadedIds) {
-            logger.info("Skipping thread ${parentTitles.plus(id).joinToString("/")}")
+    private fun QuipThread.toJson(): String {
+        val field = javaClass.superclass.getDeclaredField("_jsonObject")
+        field.trySetAccessible()
+        val jsonObject = field.get(this) as JsonObject
+        jsonObject.remove("html")
+        return gson().toJson(jsonObject) // prettify
+    }
+
+    private fun QuipFolder.Node.processThread(path: Path, progress: Progress) {
+        path.createParentDirectories()
+        val folderPath = path.parent
+
+        val unnamedProgress = progress.named(id)
+        val jsonPath = folderPath.resolve("$id.json")
+        if (jsonPath.exists()) {
+            logger.info(unnamedProgress.action("Skipping thread"))
             return
         }
 
         val thread = QuipThread.getThread(id)
-        val newTitles = parentTitles.plus("${thread.id}:${thread.title}")
-        val fullThreadName = newTitles.joinToString("/")
-        logger.info("Downloading thread $fullThreadName")
+        val namedProgress = progress.named("${thread.title} (${thread.id})")
+        logger.info(namedProgress.action("Downloading thread"))
         val type = QuipThreadType.fromQuipThread(thread)
-        val docxPath = folderPath.resolve(path.name + "." + type.extension)
-        docxPath.writeBytes(type.download(thread))
-
-        val titlePath = folderPath.resolve(path.name + "_title.txt")
-        titlePath.writeText(
-            thread.title,
+        folderPath.resolve(thread.id + "." + type.extension).writeBytes(
+            type.download(thread),
+            StandardOpenOption.CREATE_NEW
+        )
+        jsonPath.writeText(
+            thread.toJson(),
             Charsets.UTF_8,
             StandardOpenOption.CREATE_NEW
         )
-        logger.info("Finished downloading thread $fullThreadName")
+        logger.info(namedProgress.action("Downloaded thread"))
     }
 
-    private fun processFolder(path: Path, id: String, parentTitles: List<String>) {
+    @OptIn(ExperimentalPathApi::class)
+    private fun processFolder(path: Path, id: String, progress: Progress) {
         if (!path.exists()) {
             path.createParentDirectories()
             path.createDirectory()
         }
 
-        val titlePath = path.resolve("_title.txt")
-        if (titlePath.exists()) {
-            logger.info("Skipping folder ${parentTitles.plus(id).joinToString("/")}")
+        val unnamedProgress = progress.named(id)
+        val jsonPath = path.resolve("_folder.json")
+        if (jsonPath.exists()) {
+            logger.info(unnamedProgress.action("Skipping folder"))
             return
         }
 
         val folder = try {
             QuipFolder.getFolder(id, false)
-        } catch (e: Exception) {
-            if (e is HttpResponseException && e.statusCode == 403) {
-                logger.warning("No access to the folder $id, path $parentTitles")
-                val noAccessFile = path.resolve("_no_access.txt")
-                if (!noAccessFile.exists()) noAccessFile.createFile()
+        } catch (e: HttpResponseException) {
+            if (e.statusCode == 403) {
+                logger.warning(unnamedProgress.action("No access, skipping"))
+                path.deleteRecursively()
+                return
             }
-            return
+            throw e
         }
-        val newTitles = parentTitles.plus("${folder.id}:${folder.title}")
-        val fullFolderName = newTitles.joinToString("/")
-        logger.info("Downloading folder $fullFolderName")
-        for (child in folder.children) {
-            child.goDeep(path.resolve(child.id), newTitles)
-        }
-        titlePath.writeText(
-            folder.title,
+
+        val namedProgress = progress.named(folder.title + " (${folder.id})")
+        logger.info(namedProgress.action("Downloading folder"))
+        val children = folder.children
+        children
+            .sortedBy { if (it.isFolder) 1 else 0 } // use files before folders
+            .forEachIndexed { index, child ->
+                child.goDeep(path.resolve(child.id), namedProgress.withIndex(index + 1, children.size))
+            }
+        jsonPath.writeText(
+            gson().toJson(folder),
             Charsets.UTF_8,
             StandardOpenOption.CREATE_NEW
         )
-        logger.info("Finished downloading folder $fullFolderName")
+        logger.info(namedProgress.action("Downloaded folder"))
     }
 
-    private fun QuipFolder.Node.goDeep(path: Path, parentTitles: List<String>) {
+    private fun QuipFolder.Node.goDeep(path: Path, progress: Progress) {
         if (isFolder) {
-            processFolder(path, id, parentTitles)
+            processFolder(path, id, progress)
         } else {
-            processThread(path, parentTitles)
+            processThread(path, progress)
         }
     }
 }

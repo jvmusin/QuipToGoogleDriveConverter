@@ -4,26 +4,12 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="33bb1b32-bd41-4bd6-b34e-8db230a5ed99" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/gradle.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/kotlinc.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
+    <list default="true" id="33bb1b32-bd41-4bd6-b34e-8db230a5ed99" name="Changes" comment="Add GDrive Uploader">
       <change afterPath="$PROJECT_DIR$/.idea/uiDesigner.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/README.MD" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/build.gradle.kts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/buildQuipApi" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/gradle.properties" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/gradle/wrapper/gradle-wrapper.jar" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/gradle/wrapper/gradle-wrapper.properties" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/gradlew" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/gradlew.bat" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/settings.gradle.kts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/kotlin/Downloader.kt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/kotlin/Logging.kt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/kotlin/Uploader.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/README.MD" beforeDir="false" afterPath="$PROJECT_DIR$/README.MD" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/Downloader.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/Downloader.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/Logging.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/Utils.kt" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -73,12 +59,12 @@
     &quot;assignee&quot;: &quot;jvmusin&quot;
   }
 }</component>
-  <component name="GithubPullRequestsUISettings">{
-  &quot;selectedUrlAndAccountId&quot;: {
-    &quot;url&quot;: &quot;git@github.com:kenichi-ando/quip-api-java.git&quot;,
-    &quot;accountId&quot;: &quot;a4abf080-4734-4f9f-afb5-9cc535e7bad8&quot;
+  <component name="GithubPullRequestsUISettings"><![CDATA[{
+  "selectedUrlAndAccountId": {
+    "url": "https://github.com/jvmusin/QuipToGoogleDriveConverter.git",
+    "accountId": "a4abf080-4734-4f9f-afb5-9cc535e7bad8"
   }
-}</component>
+}]]></component>
   <component name="ProjectColorInfo"><![CDATA[{
   "associatedIndex": 8
 }]]></component>
@@ -94,6 +80,8 @@
     "Gradle.Build QuipToGoogleDriveConverter.executor": "Run",
     "Gradle.Download Sources.executor": "Run",
     "Gradle.MainTest.test.executor": "Run",
+    "Kotlin.Downloader.executor": "Debug",
+    "Kotlin.DownloaderKt (1).executor": "Run",
     "Kotlin.DownloaderKt.executor": "Run",
     "Kotlin.MainKt.executor": "Run",
     "Kotlin.UploaderKt.executor": "Run",
@@ -121,13 +109,15 @@
 }]]></component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$" />
+      <recent name="$PROJECT_DIR$/downloaded/cMRAOA6ktZQ" />
       <recent name="$PROJECT_DIR$/src/main/resources" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
       <recent name="$PROJECT_DIR$" />
     </key>
   </component>
-  <component name="RunManager" selected="Kotlin.DownloaderKt">
+  <component name="RunManager" selected="Kotlin.Downloader">
     <configuration name="MainTest.test" type="GradleRunConfiguration" factoryName="Gradle" temporary="true">
       <ExternalSystemSettings>
         <option name="executionName" />
@@ -152,9 +142,9 @@
       <RunAsTest>true</RunAsTest>
       <method v="2" />
     </configuration>
-    <configuration name="DownloaderKt" type="JetRunConfigurationType" temporary="true" nameIsGenerated="true">
-      <option name="MAIN_CLASS_NAME" value="io.github.jvmusin.DownloaderKt" />
-      <module name="QuipToGoogleDocsConverter.main" />
+    <configuration name="Downloader" type="JetRunConfigurationType" temporary="true" nameIsGenerated="true">
+      <option name="MAIN_CLASS_NAME" value="io.github.jvmusin.Downloader" />
+      <module name="QuipToGoogleDriveConverter.main" />
       <shortenClasspath name="NONE" />
       <option name="VM_PARAMETERS" value="--add-opens=java.base/java.util.concurrent.atomic=ALL-UNNAMED --add-opens=java.base/java.text=ALL-UNNAMED" />
       <method v="2">
@@ -163,7 +153,8 @@
     </configuration>
     <configuration name="UploaderKt" type="JetRunConfigurationType" temporary="true" nameIsGenerated="true">
       <option name="MAIN_CLASS_NAME" value="io.github.jvmusin.UploaderKt" />
-      <module name="QuipToGoogleDocsConverter.main" />
+      <module name="QuipToGoogleDriveConverter.main" />
+      <shortenClasspath name="NONE" />
       <method v="2">
         <option name="Make" enabled="true" />
       </method>
@@ -183,12 +174,12 @@
     </configuration>
     <list>
       <item itemvalue="Gradle.MainTest.test" />
+      <item itemvalue="Kotlin.Downloader" />
       <item itemvalue="Kotlin.UploaderKt" />
-      <item itemvalue="Kotlin.DownloaderKt" />
     </list>
     <recent_temporary>
       <list>
-        <item itemvalue="Kotlin.DownloaderKt" />
+        <item itemvalue="Kotlin.Downloader" />
         <item itemvalue="Kotlin.UploaderKt" />
         <item itemvalue="Gradle.MainTest.test" />
       </list>
@@ -211,12 +202,25 @@
       <option name="presentableId" value="Default" />
       <updated>1717438726950</updated>
       <workItem from="1717438728007" duration="29697000" />
-      <workItem from="1717503818088" duration="70000" />
+      <workItem from="1717503818088" duration="26131000" />
     </task>
+    <task id="LOCAL-00001" summary="Add GDrive Uploader">
+      <option name="closed" value="true" />
+      <created>1717504057945</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1717504057945</updated>
+    </task>
+    <option name="localTasksCounter" value="2" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
+  </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="Add GDrive Uploader" />
+    <option name="LAST_COMMIT_MESSAGE" value="Add GDrive Uploader" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -226,7 +230,18 @@
           <line>101</line>
           <option name="timeStamp" value="16" />
         </line-breakpoint>
+        <line-breakpoint enabled="true" type="kotlin-line">
+          <url>file://$PROJECT_DIR$/src/main/kotlin/Downloader.kt</url>
+          <line>111</line>
+          <option name="timeStamp" value="25" />
+        </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>
+    <watches-manager>
+      <configuration name="JetRunConfigurationType">
+        <watch expression="load.parts" language="kotlin" />
+        <watch expression="threadPath.readBytes().con" language="kotlin" custom="import kotlin.io.path.readText,import kotlin.io.path.readBytes" />
+      </configuration>
+    </watches-manager>
   </component>
 </project>
