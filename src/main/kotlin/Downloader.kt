@@ -5,7 +5,6 @@ import kenichia.quipapi.QuipFolder
 import kenichia.quipapi.QuipThread
 import org.apache.http.client.HttpResponseException
 import java.nio.file.Path
-import java.nio.file.StandardOpenOption
 import kotlin.io.path.*
 
 object Downloader {
@@ -41,12 +40,12 @@ object Downloader {
         override fun toString() = s
     }
 
-    private fun QuipThread.toJson(): String {
+    private fun QuipThread.toJson(): JsonObject {
         val field = javaClass.superclass.getDeclaredField("_jsonObject")
         field.trySetAccessible()
         val jsonObject = field.get(this) as JsonObject
         jsonObject.remove("html")
-        return gson().toJson(jsonObject) // prettify
+        return jsonObject
     }
 
     private fun QuipFolder.Node.processThread(path: Path, progress: Progress) {
@@ -64,15 +63,8 @@ object Downloader {
         val namedProgress = progress.named("${thread.title} (${thread.id})")
         logger.info(namedProgress.action("Downloading thread"))
         val type = QuipThreadType.fromQuipThread(thread)
-        folderPath.resolve(thread.id + "." + type.extension).writeBytes(
-            type.download(thread),
-            StandardOpenOption.CREATE_NEW
-        )
-        jsonPath.writeText(
-            thread.toJson(),
-            Charsets.UTF_8,
-            StandardOpenOption.CREATE_NEW
-        )
+        folderPath.resolve(thread.id + "." + type.extension).createNewFile(type.download(thread))
+        jsonPath.createNewFile(thread.toJson())
         logger.info(namedProgress.action("Downloaded thread"))
     }
 
@@ -109,11 +101,7 @@ object Downloader {
             .forEachIndexed { index, child ->
                 child.goDeep(path.resolve(child.id), namedProgress.withIndex(index + 1, children.size))
             }
-        jsonPath.writeText(
-            gson().toJson(folder),
-            Charsets.UTF_8,
-            StandardOpenOption.CREATE_NEW
-        )
+        jsonPath.createNewFile(folder)
         logger.info(namedProgress.action("Downloaded folder"))
     }
 

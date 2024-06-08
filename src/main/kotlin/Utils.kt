@@ -5,7 +5,10 @@ import com.google.gson.GsonBuilder
 import kenichia.quipapi.QuipClient
 import java.nio.file.Path
 import java.nio.file.Paths
+import java.nio.file.StandardOpenOption
 import java.util.logging.Logger
+import kotlin.io.path.writeBytes
+import kotlin.io.path.writeText
 
 fun Any.getLogger(): Logger {
     System.setProperty(
@@ -23,3 +26,7 @@ fun Any.setupQuipClient(debug: Boolean = false) {
     QuipClient.enableDebug(debug)
     QuipClient.setAccessToken(javaClass.getResource("/quip_access_token.txt")!!.readText())
 }
+
+fun Path.createNewFile(content: String) = writeText(content, Charsets.UTF_8, StandardOpenOption.CREATE_NEW)
+fun Path.createNewFile(content: ByteArray) = writeBytes(content, StandardOpenOption.CREATE_NEW)
+fun Path.createNewFile(content: Any) = createNewFile(gson().toJson(content))

@@ -13,6 +13,7 @@ import com.google.api.client.json.gson.GsonFactory
 import com.google.api.client.util.store.FileDataStoreFactory
 import com.google.api.services.drive.Drive
 import com.google.api.services.drive.DriveScopes
+import com.google.gson.JsonObject
 import java.io.File
 import java.io.FileNotFoundException
 import java.io.InputStream
@@ -83,12 +84,21 @@ object Uploader {
         return service.files().create(content, mediaContent).setFields("id").execute().id
     }
 
-    private fun getFilesInFolder(service: Drive, folderId: String): List<String> {
+    data class DriveFile(val id: String, val name: String)
+
+    private fun getFilesInFolder(service: Drive, folderId: String): List<DriveFile> {
         return service.files().list()
             .setQ("parents in '$folderId' and mimeType!='application/vnd.google-apps.folder'")
             .execute()
             .files
-            .map { it.name }
+            .map { DriveFile(it.id, it.name) }
+    }
+
+    data class DriveFileInfo(val driveId: String, val existed: Boolean) {
+        companion object {
+            fun newFile(id: String) = DriveFileInfo(id, false)
+            fun existedFile(id: String) = DriveFileInfo(id, true)
+        }
     }
 
     @OptIn(ExperimentalPathApi::class)
@@ -104,18 +114,29 @@ object Uploader {
         Paths.get("downloaded").visitFileTree {
             val driveFolderIds = mutableListOf(quipFolder)
             val driveFolderNames = mutableListOf<String>()
-            val driveFolderFileNames = mutableListOf<List<String>>()
+            val driveFolderFiles = mutableListOf<List<DriveFile>>()
 
             onVisitFile { file, attributes ->
-                if (file.extension == "txt" || file.name.endsWith("_title")) return@onVisitFile FileVisitResult.CONTINUE
-                val title = file.resolveSibling(file.nameWithoutExtension + "_title.txt").readText()
+                if (file.extension == "json") return@onVisitFile FileVisitResult.CONTINUE
+                val driveInfoPath = file.resolveSibling(file.nameWithoutExtension + "_driveId.txt")
+                if (driveInfoPath.exists()) {
+                    // the file is already on drive
+                    return@onVisitFile FileVisitResult.CONTINUE
+                }
+                val json = file.resolveSibling(file.nameWithoutExtension + ".json").readText()
+                val title = gson().fromJson(
+                    json, JsonObject::class.java
+                ).getAsJsonObject("thread").get("title").asString
                 val fullFileName = (driveFolderNames + title).joinToString("/")
-                if (title in driveFolderFileNames.last()) {
+                val driveFile = driveFolderFiles.last().firstOrNull { it.name == title }
+                if (driveFile != null) {
                     logger.info("Skipping existing file $fullFileName")
+                    driveInfoPath.createNewFile(DriveFileInfo.existedFile(driveFile.id))
                     return@onVisitFile FileVisitResult.CONTINUE
                 }
                 logger.info("Saving file $fullFileName")
-                createFile(service, parent = driveFolderIds.last(), name = title, sourceFile = file)
+                val driveId = createFile(service, parent = driveFolderIds.last(), name = title, sourceFile = file)
+                driveInfoPath.createNewFile(DriveFileInfo.newFile(driveId))
                 logger.info("Saved file $fullFileName")
                 FileVisitResult.CONTINUE
             }
@@ -129,14 +150,14 @@ object Uploader {
                 }
                 driveFolderIds += getOrCreateFolder(service, title, driveFolderIds.last())
                 driveFolderNames += title
-                driveFolderFileNames += getFilesInFolder(service, driveFolderIds.last())
+                driveFolderFiles += getFilesInFolder(service, driveFolderIds.last())
                 FileVisitResult.CONTINUE
             }
 
             onPostVisitDirectory { directory, exception ->
                 driveFolderIds.removeLast()
                 driveFolderNames.removeLast()
-                driveFolderFileNames.removeLast()
+                driveFolderFiles.removeLast()
                 FileVisitResult.CONTINUE
             }
         }
