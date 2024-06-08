@@ -97,7 +97,7 @@ object Downloader {
         logger.info(namedProgress.action("Downloading folder"))
         val children = folder.children
         children
-            .sortedBy { if (it.isFolder) 1 else 0 } // use files before folders
+            .sortedBy { it.isFolder } // process files before folders
             .forEachIndexed { index, child ->
                 child.goDeep(path.resolve(child.id), namedProgress.withIndex(index + 1, children.size))
             }
