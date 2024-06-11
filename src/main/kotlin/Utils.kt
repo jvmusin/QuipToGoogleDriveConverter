@@ -2,11 +2,15 @@ package io.github.jvmusin
 
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
+import com.google.gson.JsonObject
 import kenichia.quipapi.QuipClient
+import kenichia.quipapi.QuipFolder
+import kenichia.quipapi.QuipThread
 import java.nio.file.Path
 import java.nio.file.Paths
 import java.nio.file.StandardOpenOption
 import java.util.logging.Logger
+import kotlin.io.path.readText
 import kotlin.io.path.writeBytes
 import kotlin.io.path.writeText
 
@@ -30,3 +34,29 @@ fun Any.setupQuipClient(debug: Boolean = false) {
 fun Path.createNewFile(content: String) = writeText(content, Charsets.UTF_8, StandardOpenOption.CREATE_NEW)
 fun Path.createNewFile(content: ByteArray) = writeBytes(content, StandardOpenOption.CREATE_NEW)
 fun Path.createNewFile(content: Any) = createNewFile(gson().toJson(content))
+
+private fun Any.toJson0(): JsonObject {
+    val field = javaClass.superclass.getDeclaredField("_jsonObject")
+    field.trySetAccessible()
+    val jsonObject = field.get(this) as JsonObject
+    return jsonObject.apply { remove("html") }
+}
+
+fun QuipThread.toJson(fileName: String): FileJson = FileJson(toJson0(), fileName)
+fun QuipFolder.toJson(): FolderJson = FolderJson(toJson0())
+
+data class FileJson(
+    val quip: JsonObject,
+    val fileName: String,
+    val driveInfo: FileDriveInfo? = null,
+    val linksReplaced: Boolean? = null
+)
+
+data class FolderJson(val quip: JsonObject)
+data class FileDriveInfo(val id: String, val parent: String)
+
+fun main() {
+    val text = downloadedPath.resolve("DZZAAAxoWBm.json").readText()
+    val res = gson().fromJson(text, FileJson::class.java)
+    println(res)
+}

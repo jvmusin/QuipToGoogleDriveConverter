@@ -1,13 +1,12 @@
 package io.github.jvmusin
 
-import com.google.gson.JsonObject
 import kenichia.quipapi.QuipFolder
 import kenichia.quipapi.QuipThread
 import org.apache.http.client.HttpResponseException
 import java.nio.file.Path
 import kotlin.io.path.*
 
-object Downloader {
+object QuipDownloader {
     @JvmStatic
     fun main(args: Array<String>) {
         setupQuipClient()
@@ -40,14 +39,6 @@ object Downloader {
         override fun toString() = s
     }
 
-    private fun QuipThread.toJson(): JsonObject {
-        val field = javaClass.superclass.getDeclaredField("_jsonObject")
-        field.trySetAccessible()
-        val jsonObject = field.get(this) as JsonObject
-        jsonObject.remove("html")
-        return jsonObject
-    }
-
     private fun QuipFolder.Node.processThread(path: Path, progress: Progress) {
         path.createParentDirectories()
         val folderPath = path.parent
@@ -63,8 +54,9 @@ object Downloader {
         val namedProgress = progress.named("${thread.title} (${thread.id})")
         logger.info(namedProgress.action("Downloading thread"))
         val type = QuipThreadType.fromQuipThread(thread)
-        folderPath.resolve(thread.id + "." + type.extension).createNewFile(type.download(thread))
-        jsonPath.createNewFile(thread.toJson())
+        val fileName = thread.id + "." + type.extension
+        folderPath.resolve(fileName).createNewFile(type.download(thread))
+        jsonPath.createNewFile(thread.toJson(fileName))
         logger.info(namedProgress.action("Downloaded thread"))
     }
 
@@ -101,7 +93,7 @@ object Downloader {
             .forEachIndexed { index, child ->
                 child.goDeep(path.resolve(child.id), namedProgress.withIndex(index + 1, children.size))
             }
-        jsonPath.createNewFile(folder)
+        jsonPath.createNewFile(folder.toJson())
         logger.info(namedProgress.action("Downloaded folder"))
     }
 
