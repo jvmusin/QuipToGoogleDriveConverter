@@ -34,7 +34,6 @@ object DriveUploader {
         val fullFileName = (state.driveFolderNames + parsedJson.getTitleAndId()).joinToString(" > ")
 
         if (fileJson.driveInfo != null) {
-            // the file is already on drive
             logger.info("$fullFileName -- Skipping previously uploaded file with Drive id ${fileJson.driveInfo.id}")
             return
         }
@@ -44,7 +43,7 @@ object DriveUploader {
         val driveId =
             service.createFile(parent = state.driveFolderId, name = parsedJson.getTitle(), sourceFile = document)
         file.deleteExisting()
-        file.createNewFile(fileJson.copy(driveInfo = FileDriveInfo(driveId, state.driveFolderId)))
+        file.createNewFile(fileJson.copy(driveInfo = FileDriveInfo(driveId)))
         logger.info("$fullFileName -- Saved file on Drive with id $driveId")
         FileVisitResult.CONTINUE
     }

@@ -49,11 +49,10 @@ data class FileJson(
     val quip: JsonObject,
     val fileName: String,
     val driveInfo: FileDriveInfo? = null,
-    val linksReplaced: Boolean? = null
 )
 
 data class FolderJson(val quip: JsonObject)
-data class FileDriveInfo(val id: String, val parent: String)
+data class FileDriveInfo(val id: String)
 
 fun main() {
     val text = downloadedPath.resolve("DZZAAAxoWBm.json").readText()

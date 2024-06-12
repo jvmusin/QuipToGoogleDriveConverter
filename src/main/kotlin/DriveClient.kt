@@ -53,13 +53,15 @@ class DriveClient(private val service: Drive) {
         return withBackoff { files().create(content).setFields("id").execute().id }
     }
 
+    private fun Path.mimeType() = when (extension) {
+        "pdf" -> "application/pdf"
+        "xlsx" -> "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        "docx" -> "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        else -> error("Unsupported extension for $this")
+    }
+
     fun createFile(parent: String, name: String, sourceFile: Path): String {
-        val mimeType = when (sourceFile.extension) {
-            "pdf" -> "application/pdf"
-            "xlsx" -> "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-            "docx" -> "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-            else -> error("Unsupported extension for $sourceFile")
-        }
+        val mimeType = sourceFile.mimeType()
         val content = com.google.api.services.drive.model.File().apply {
             this.name = name
             this.parents = listOf(parent)
@@ -68,18 +70,10 @@ class DriveClient(private val service: Drive) {
         return withBackoff { files().create(content, mediaContent).setFields("id").execute().id }
     }
 
-    fun updateFile(parent: String, fileId: String, sourceFile: Path): String {
-        val mimeType = when (sourceFile.extension) {
-            "pdf" -> "application/pdf"
-            "xlsx" -> "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-            "docx" -> "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-            else -> error("Unsupported extension for $sourceFile")
-        }
-        val content = com.google.api.services.drive.model.File().apply {
-            this.name = name
-            this.parents = listOf(parent)
-        }
+    fun updateFile(fileId: String, sourceFile: Path) {
+        val mimeType = sourceFile.mimeType()
+        val content = com.google.api.services.drive.model.File()
         val mediaContent = FileContent(mimeType, sourceFile.toFile())
-        return withBackoff { files().update(fileId, content, mediaContent).setFields("id").execute().id }
+        withBackoff { files().update(fileId, content, mediaContent).execute() }
     }
 }
