@@ -10,6 +10,7 @@ import kotlin.io.path.*
 
 object DriveLinksUpdater {
     private val logger = getLogger()
+    private const val DRIVE_DOMAIN = "docs.google.com"
 
     private fun rebuildDocument(file: Path, linkIdToDriveId: Map<String, String>): Pair<Path, Map<String, String>>? {
         if (file.extension != "docx" && file.extension != "xlsx") return null
@@ -90,7 +91,7 @@ object DriveLinksUpdater {
         for (match in linkPattern.findAll(fileContent).map { it.value }.distinct()) {
             val linkId = match.substringAfter('/')
             val driveId = linkIdToDriveId[linkId] ?: continue
-            val replacement = "docs.google.com/document/d/$driveId"
+            val replacement = "$DRIVE_DOMAIN/document/d/$driveId"
             result = result.replace(match, replacement)
             replacements[match] = replacement
         }
