@@ -10,17 +10,17 @@ application {
     )
 }
 
-tasks.create("quipDownload") {
+tasks.register("quipDownload") {
     application.mainClass = "io.github.jvmusin.QuipDownloader"
     dependsOn("run")
 }
 
-tasks.create("driveUpload") {
-    application.mainClass = "io.github.jvmusin.QuipDownloader"
+tasks.register("driveUpload") {
+    application.mainClass = "io.github.jvmusin.DriveUploader"
     dependsOn("run")
 }
 
-tasks.create("driveUpdateLinks") {
+tasks.register("driveUpdateLinks") {
     application.mainClass = "io.github.jvmusin.DriveLinksUpdater"
     dependsOn("run")
 }
