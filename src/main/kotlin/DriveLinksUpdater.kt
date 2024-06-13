@@ -85,7 +85,7 @@ object DriveLinksUpdater {
         fileContent: String,
         linkIdToDriveId: Map<String, String>
     ): Pair<String, Map<String, String>> {
-        val linkPattern = Regex("jetbrains.quip.com/[a-zA-Z0-9]+")
+        val linkPattern = Regex("(jetbrains.)?quip.com/[a-zA-Z0-9]+")
         var result = fileContent
         val replacements = mutableMapOf<String, String>()
         for (match in linkPattern.findAll(fileContent).map { it.value }.distinct()) {
