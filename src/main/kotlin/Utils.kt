@@ -10,7 +10,6 @@ import java.nio.file.Path
 import java.nio.file.Paths
 import java.nio.file.StandardOpenOption
 import java.util.logging.Logger
-import kotlin.io.path.readText
 import kotlin.io.path.writeBytes
 import kotlin.io.path.writeText
 
@@ -53,9 +52,3 @@ data class FileJson(
 
 data class FolderJson(val quip: JsonObject)
 data class FileDriveInfo(val id: String)
-
-fun main() {
-    val text = downloadedPath.resolve("DZZAAAxoWBm.json").readText()
-    val res = gson().fromJson(text, FileJson::class.java)
-    println(res)
-}
