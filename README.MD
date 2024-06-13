@@ -1,17 +1,36 @@
 # Quip to Google Drive migration tool
 
+This tool simplifies files migration from Quip to Google Drive.  
+It downloads files from Quip,
+uploads them back to Google Drive preserving hierarchy,
+and then updates links to documents from Quip to newly uploaded documents to Google Drive.
+
 ## Preparation
 
 To use this tool, you have to:
 
-1. Run `downloadQuipApi` script to download and build Quip API Client
+1. Run `_1_downloadQuipApi` script to download and build Quip API Client
 2. Create a personal access token for Quip following [this instruction](https://quip.com/api/personal-token), and put
    the token as plain text into `src/main/resources/quip_access_token.txt` file
 3. Create credentials for Google Drive following
    the [instruction](https://developers.google.com/drive/api/quickstart/java), and put generated credentials file
    to `src/main/resources/credentials.json`
 
+## TLDR
+
+You can ignore everything below this section if not interested in how it works.  
+These are 4 steps to migrate all documents from Quip to Google Drive:
+
+1. Go through the [Preparation](#preparation) section above
+2. Run `_2_quipDownload` to download files from Quip
+3. Run `_3_driveUpload` to upload files to Google Drive
+4. Run `_4_driveUpdateLinks` to update links in files from Quip to Google Drive
+
 ## Downloading files from Quip
+
+### Shortcut
+
+`./_2_quipDownload`
 
 ### How to
 
@@ -60,6 +79,10 @@ This file is created only when the whole folder is downloaded (for every nested 
 
 ## Uploading files to Google Drive
 
+### Shortcut
+
+`./_3_driveUpload`
+
 ### Google Drive Rate Limits
 
 Google Drive has decent limits, allowing to upload files non-stop in one thread.  
@@ -71,6 +94,10 @@ To upload files to Google Drive, run the `DriveUploader` function.
 This function will create a folder on your Google Drive and upload all the files to that folder, preserving hierarchy.
 
 ## Updating links
+
+### Shortcut
+
+`./_4_driveUpdateLinks`
 
 Files on Quip may have links to other files on Quip.  
 Keeping them is not ideal, and you can replace such links in all `docx` (Documents) and `xlsx` (Spreadsheets) files.

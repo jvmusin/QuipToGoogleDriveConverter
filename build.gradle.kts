@@ -1,5 +1,28 @@
 plugins {
     kotlin("jvm") version "2.0.0"
+    application
+}
+
+application {
+    applicationDefaultJvmArgs = listOf(
+        "--add-opens=java.base/java.util.concurrent.atomic=ALL-UNNAMED",
+        "--add-opens=java.base/java.text=ALL-UNNAMED"
+    )
+}
+
+tasks.create("quipDownload") {
+    application.mainClass = "io.github.jvmusin.QuipDownloader"
+    dependsOn("run")
+}
+
+tasks.create("driveUpload") {
+    application.mainClass = "io.github.jvmusin.QuipDownloader"
+    dependsOn("run")
+}
+
+tasks.create("driveUpdateLinks") {
+    application.mainClass = "io.github.jvmusin.DriveLinksUpdater"
+    dependsOn("run")
 }
 
 group = "io.github.jvmusin"
