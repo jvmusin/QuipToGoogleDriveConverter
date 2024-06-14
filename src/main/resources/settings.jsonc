@@ -1,0 +1,8 @@
+{
+  // Shared Google Drive id to upload files to. Defaults to none (personal drive used).
+  "driveId": "",
+  // Folder on Quip where to download files from. Defaults to Kotlin folder.
+  "quipFolderId": "FXfSOQ5OETJh",
+  // Domain for Google Docs. Defaults to standard docs.google.com
+  "driveDomain": "docs.google.com"
+}

@@ -15,6 +15,8 @@ To use this tool, you have to:
 3. Create credentials for Google Drive following
    the [instruction](https://developers.google.com/drive/api/quickstart/java), and put generated credentials file
    to `src/main/resources/credentials.json`
+4. If you are going to upload files to a shared drive, run `_extra_driveListDrives`, find id of your drive, and put it
+   under `driveId` field in `src/main/resources/settings.jsonc`
 
 ## TLDR
 
@@ -108,7 +110,7 @@ To update links, run `DriveLinksUpdater`.
 It will check links in all files, and if it finds links to update, it updates them and uploads an updated file on Google
 Drive.  
 If your other files are not in `docs.google.com`, but under some specific domain, then open any file on drive, check the
-domain, and replace `const val DRIVE_DOMAIN = "docs.google.com"` in `DriveLinksUpdater` with a correct one.
+domain, and replace `driveDomain` field in `src/main/resources/settings.jsonc` with a correct one.
 
 ### How it works
 

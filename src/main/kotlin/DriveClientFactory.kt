@@ -49,6 +49,7 @@ object DriveClientFactory {
         val client = Drive.Builder(httpTransport, JSON_FACTORY, getCredentials(httpTransport))
             .setApplicationName(APPLICATION_NAME)
             .build()
-        return DriveClient(client)
+        val driveId = Settings.read().driveId
+        return DriveClient(client, driveId)
     }
 }

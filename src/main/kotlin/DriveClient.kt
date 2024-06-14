@@ -10,7 +10,7 @@ import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.toJavaDuration
 
-class DriveClient(private val service: Drive) {
+class DriveClient(private val service: Drive, private val driveId: String) {
     private val logger = getLogger()
 
     data class Backoff(val startPeriod: Duration, val maxPeriod: Duration)
@@ -53,6 +53,10 @@ class DriveClient(private val service: Drive) {
         return withBackoff { files().create(content).setFields("id").execute().id }
     }
 
+    fun listDrives(): List<com.google.api.services.drive.model.Drive> = withBackoff {
+        drives().list().execute().drives
+    }
+
     private fun Path.mimeType() = when (extension) {
         "pdf" -> "application/pdf"
         "xlsx" -> "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
@@ -65,15 +69,21 @@ class DriveClient(private val service: Drive) {
         val content = com.google.api.services.drive.model.File().apply {
             this.name = name
             this.parents = listOf(parent)
+            this.driveId = driveId
         }
         val mediaContent = FileContent(mimeType, sourceFile.toFile())
-        return withBackoff { files().create(content, mediaContent).setFields("id").execute().id }
+        return withBackoff {
+            files().create(content, mediaContent).apply {
+                fields = "id"
+                isSupportsAllDrives = true
+            }.execute().id
+        }
     }
 
     fun updateFile(fileId: String, sourceFile: Path) {
         val mimeType = sourceFile.mimeType()
-        val content = com.google.api.services.drive.model.File()
+        val content = com.google.api.services.drive.model.File().setDriveId(driveId)
         val mediaContent = FileContent(mimeType, sourceFile.toFile())
-        withBackoff { files().update(fileId, content, mediaContent).execute() }
+        withBackoff { files().update(fileId, content, mediaContent).setSupportsAllDrives(true).execute() }
     }
 }

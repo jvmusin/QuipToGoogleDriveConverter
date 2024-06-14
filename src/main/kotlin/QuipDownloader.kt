@@ -10,11 +10,11 @@ object QuipDownloader {
     @JvmStatic
     fun main(args: Array<String>) {
         setupQuipClient()
-        processFolder(downloadedPath, KOTLIN_FOLDER_ID, Progress(""))
+        val quipFolderId = Settings.read().quipFolderId
+        processFolder(downloadedPath, quipFolderId, Progress(""))
     }
 
     private val logger = getLogger()
-    private const val KOTLIN_FOLDER_ID = "FXfSOQ5OETJh"
 
     private enum class QuipThreadType(
         val quipType: QuipThread.Type,

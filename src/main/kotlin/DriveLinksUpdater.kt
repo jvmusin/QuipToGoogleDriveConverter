@@ -10,7 +10,7 @@ import kotlin.io.path.*
 
 object DriveLinksUpdater {
     private val logger = getLogger()
-    private const val DRIVE_DOMAIN = "docs.google.com"
+    private val driveDomain = Settings.read().driveId
 
     private fun rebuildDocument(file: Path, linkIdToDriveId: Map<String, String>): Pair<Path, Map<String, String>>? {
         if (file.extension != "docx" && file.extension != "xlsx") return null
@@ -66,7 +66,7 @@ object DriveLinksUpdater {
                 logger.info("$prefix -- No links found, skipping")
                 continue
             }
-            updatedFileEntry.second.forEach { from, to ->
+            updatedFileEntry.second.forEach { (from, to) ->
                 logger.info("$prefix -- Made replacement $from -> $to")
             }
 
@@ -91,7 +91,7 @@ object DriveLinksUpdater {
         for (match in linkPattern.findAll(fileContent).map { it.value }.distinct()) {
             val linkId = match.substringAfter('/')
             val driveId = linkIdToDriveId[linkId] ?: continue
-            val replacement = "$DRIVE_DOMAIN/document/d/$driveId"
+            val replacement = "$driveDomain/document/d/$driveId"
             result = result.replace(match, replacement)
             replacements[match] = replacement
         }
@@ -102,7 +102,7 @@ object DriveLinksUpdater {
     fun getFileJsons(): Map<Path, FileJson> {
         val fileJsons = hashMapOf<Path, FileJson>()
         downloadedPath.visitFileTree {
-            onVisitFile { file, attributes ->
+            onVisitFile { file, _ ->
                 if (file.name != "_folder.json" && file.extension == "json") {
                     val fileJson = gson().fromJson(file.readText(), FileJson::class.java)
                     fileJsons[file] = fileJson

@@ -10,20 +10,15 @@ application {
     )
 }
 
-tasks.register("quipDownload") {
-    application.mainClass = "io.github.jvmusin.QuipDownloader"
-    dependsOn("run")
+fun registerRunTask(name: String, mainClass: String) = tasks.register(name) {
+    application.mainClass = "io.github.jvmusin.$mainClass"
+    dependsOn(ApplicationPlugin.TASK_RUN_NAME)
 }
 
-tasks.register("driveUpload") {
-    application.mainClass = "io.github.jvmusin.DriveUploader"
-    dependsOn("run")
-}
-
-tasks.register("driveUpdateLinks") {
-    application.mainClass = "io.github.jvmusin.DriveLinksUpdater"
-    dependsOn("run")
-}
+registerRunTask("quipDownload", "QuipDownloader")
+registerRunTask("driveUpload", "DriveUploader")
+registerRunTask("driveUpdateLinks", "DriveLinksUpdater")
+registerRunTask("driveListDrives", "DriveListDrives")
 
 group = "io.github.jvmusin"
 version = "1.0-SNAPSHOT"
