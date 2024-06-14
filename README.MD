@@ -9,7 +9,7 @@ and then updates links to documents from Quip to newly uploaded documents to Goo
 
 To use this tool, you have to:
 
-1. Run `_1_downloadQuipApi` script to download and build Quip API Client (you should have maven installed locally)
+1. Run `_1_quipDownloadApi` script to download and build Quip API Client (you should have maven installed locally)
 2. Create a personal access token for Quip following [this instruction](https://quip.com/api/personal-token), and put
    the token as plain text into `src/main/resources/quip_access_token.txt` file
 3. Create credentials for Google Drive following
@@ -24,20 +24,20 @@ You can ignore everything below this section if not interested in how it works.
 These are 4 steps to migrate all documents from Quip to Google Drive:
 
 1. Go through the [Preparation](#preparation) section above
-2. Run `_2_quipDownload` to download files from Quip
-3. Run `_3_driveUpload` to upload files to Google Drive
+2. Run `_2_quipDownloadFiles` to download files from Quip
+3. Run `_3_driveUploadFiles` to upload files to Google Drive
 4. Run `_4_driveUpdateLinks` to update links in files from Quip to Google Drive
 
 ## Downloading files from Quip
 
 ### Shortcut
 
-`./_2_quipDownload`
+`./_2_quipDownloadFiles`
 
 ### How to
 
-To download files from Quip, Run the `QuipDownloader` function, it will download all files into `downloaded` folder
-in the root of the project.  
+To download files from Quip, Run `QuipDownloadFiles`, it will download all files into `downloaded` folder in the root of
+the project.  
 This function will download files to `downloaded` directory under root directory.
 
 **IMPORTANT**: To avoid
@@ -51,8 +51,6 @@ Add the following to the VM options in the Run Configuration to:
 ```
 --add-opens=java.base/java.util.concurrent.atomic=ALL-UNNAMED --add-opens=java.base/java.text=ALL-UNNAMED
 ```
-
-TODO: Add the above to gradle.kts
 
 ### Downloaded Files Structure
 
@@ -71,7 +69,7 @@ Quip has quite tiny rate limits on QPI requests - 50 req per minute / 750 req pe
 
 It might be impossible to download all the files at the same time, hence the tool supports skipping already downloaded
 files.  
-This way, you can run `QuipDownloader` multiple times and get more and more files downloaded.  
+This way, you can run `QuipDownloadFiles` multiple times and get more and more files downloaded.  
 You can also run the script and let it work for a long time - Quip API client is designed to work with a backoff
 strategy, so keeping the downloader overnight might be a good idea.
 
@@ -83,7 +81,7 @@ This file is created only when the whole folder is downloaded (for every nested 
 
 ### Shortcut
 
-`./_3_driveUpload`
+`./_3_driveUploadFiles`
 
 ### Google Drive Rate Limits
 
@@ -92,8 +90,10 @@ But even if the uploading fails because of Rate Limits, there is a backoff strat
 
 ### How to
 
-To upload files to Google Drive, run the `DriveUploader` function.  
-This function will create a folder on your Google Drive and upload all the files to that folder, preserving hierarchy.
+To upload files to Google Drive, run `DriveUploadFiles`.  
+This function will create a folder on your Google Drive and upload all the files to that folder, preserving hierarchy.  
+Files will be uploaded to a folder named "Quip" by default.  
+You can change it in `src/main/resources/settings.jsonc`.
 
 ## Updating links
 
@@ -106,7 +106,7 @@ Keeping them is not ideal, and you can replace such links in all `docx` (Documen
 
 ### How to
 
-To update links, run `DriveLinksUpdater`.  
+To update links, run `DriveUpdateLinks`.  
 It will check links in all files, and if it finds links to update, it updates them and uploads an updated file on Google
 Drive.  
 If your other files are not in `docs.google.com`, but under some specific domain, then open any file on drive, check the
@@ -115,7 +115,7 @@ domain, and replace `driveDomain` field in `src/main/resources/settings.jsonc` w
 ### How it works
 
 When you upload files to Google Drive, the script saves file's Google Drive id in its `.json` file.  
-When you run `DriveLinksUpdater`, it skims through all the links in files and replaces links if they lead to an uploaded
+When you run `DriveUpdateLinks`, it skims through all the links in files and replaces links if they lead to an uploaded
 file.  
-Then the updated file is saved under `QUIP_ID_updated.(extension)`.  
+Then the updated file is saved under `{QUIP_ID}_updated.(extension)`.  
 Then the file on Google Drive is updated by this `_updated` copy.

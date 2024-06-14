@@ -8,7 +8,7 @@ import java.util.zip.ZipInputStream
 import java.util.zip.ZipOutputStream
 import kotlin.io.path.*
 
-object DriveLinksUpdater {
+object DriveUpdateLinks {
     private val logger = getLogger()
     private val driveDomain = Settings.read().driveId
 

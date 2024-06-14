@@ -1,6 +1,11 @@
 package io.github.jvmusin
 
-data class Settings(val driveId: String, val quipFolderId: String, val driveDomain: String) {
+data class Settings(
+    val driveId: String,
+    val quipFolderId: String,
+    val driveDomain: String,
+    val driveFolderName: String
+) {
     companion object {
         fun read(): Settings {
             val stream = Settings::class.java.getResourceAsStream("/settings.jsonc")

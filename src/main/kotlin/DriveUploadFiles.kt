@@ -5,10 +5,19 @@ import java.nio.file.FileVisitResult
 import java.nio.file.Path
 import kotlin.io.path.*
 
-object DriveUploader {
+object DriveUploadFiles {
     @JvmStatic
     fun main(args: Array<String>) {
-        saveAllFiles()
+        val client = DriveClientFactory.createClient()
+        val quipFolder = client.getOrCreateFolder(name = Settings.read().driveFolderName, parent = null)
+        visitDirectory(
+            downloadedPath,
+            State(
+                driveFolderId = quipFolder,
+                driveFolderNames = emptyList(),
+            ),
+            client
+        )
     }
 
     private val logger = getLogger()
@@ -69,16 +78,4 @@ object DriveUploader {
         }
     }
 
-    private fun saveAllFiles() {
-        val client = DriveClientFactory.createClient()
-        val quipFolder = client.getOrCreateFolder(name = "Quip", parent = null)
-        visitDirectory(
-            downloadedPath,
-            State(
-                driveFolderId = quipFolder,
-                driveFolderNames = emptyList(),
-            ),
-            client
-        )
-    }
 }

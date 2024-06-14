@@ -6,7 +6,7 @@ import org.apache.http.client.HttpResponseException
 import java.nio.file.Path
 import kotlin.io.path.*
 
-object QuipDownloader {
+object QuipDownloadFiles {
     @JvmStatic
     fun main(args: Array<String>) {
         setupQuipClient()

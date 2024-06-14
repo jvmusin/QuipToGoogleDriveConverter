@@ -4,5 +4,7 @@
   // Folder on Quip where to download files from. Defaults to Kotlin folder.
   "quipFolderId": "FXfSOQ5OETJh",
   // Domain for Google Docs. Defaults to standard docs.google.com
-  "driveDomain": "docs.google.com"
+  "driveDomain": "docs.google.com",
+  // Root folder name on Google Drive. Will be created if it does not exist. Defaults to Quip.
+  "driveFolderName": "Quip"
 }

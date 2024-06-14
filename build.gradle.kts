@@ -1,3 +1,5 @@
+import org.jetbrains.kotlin.util.capitalizeDecapitalize.decapitalizeAsciiOnly
+
 plugins {
     kotlin("jvm") version "2.0.0"
     application
@@ -10,15 +12,15 @@ application {
     )
 }
 
-fun registerRunTask(name: String, mainClass: String) = tasks.register(name) {
+fun registerRunTask(mainClass: String) = tasks.register(mainClass.decapitalizeAsciiOnly()) {
     application.mainClass = "io.github.jvmusin.$mainClass"
     dependsOn(ApplicationPlugin.TASK_RUN_NAME)
 }
 
-registerRunTask("quipDownload", "QuipDownloader")
-registerRunTask("driveUpload", "DriveUploader")
-registerRunTask("driveUpdateLinks", "DriveLinksUpdater")
-registerRunTask("driveListDrives", "DriveListDrives")
+registerRunTask("QuipDownloadFiles")
+registerRunTask("DriveUploadFiles")
+registerRunTask("DriveUpdateLinks")
+registerRunTask("DriveListDrives")
 
 group = "io.github.jvmusin"
 version = "1.0-SNAPSHOT"
