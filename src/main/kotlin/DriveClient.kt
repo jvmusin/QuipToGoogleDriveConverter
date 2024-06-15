@@ -10,7 +10,7 @@ import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.toJavaDuration
 
-class DriveClient(private val service: Drive, private val driveId: String) {
+class DriveClient(private val service: Drive) {
     private val logger = getLogger()
 
     data class Backoff(val startPeriod: Duration, val maxPeriod: Duration)
@@ -69,7 +69,6 @@ class DriveClient(private val service: Drive, private val driveId: String) {
         val content = com.google.api.services.drive.model.File().apply {
             this.name = name
             this.parents = listOf(parent)
-            this.driveId = driveId
         }
         val mediaContent = FileContent(mimeType, sourceFile.toFile())
         return withBackoff {
@@ -82,7 +81,7 @@ class DriveClient(private val service: Drive, private val driveId: String) {
 
     fun updateFile(fileId: String, sourceFile: Path) {
         val mimeType = sourceFile.mimeType()
-        val content = com.google.api.services.drive.model.File().setDriveId(driveId)
+        val content = com.google.api.services.drive.model.File()
         val mediaContent = FileContent(mimeType, sourceFile.toFile())
         withBackoff { files().update(fileId, content, mediaContent).setSupportsAllDrives(true).execute() }
     }
