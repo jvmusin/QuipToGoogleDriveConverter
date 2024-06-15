@@ -54,7 +54,7 @@ class DriveClient(private val service: Drive, private val driveId: String) {
     }
 
     fun listDrives(): List<com.google.api.services.drive.model.Drive> = withBackoff {
-        drives().list().execute().drives
+        drives().list().setPageSize(100).execute().drives
     }
 
     private fun Path.mimeType() = when (extension) {
