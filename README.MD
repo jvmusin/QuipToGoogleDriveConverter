@@ -95,6 +95,9 @@ This function will create a folder on your Google Drive and upload all the files
 Files will be uploaded to a folder named "Quip" by default.  
 You can change it in `src/main/resources/settings.jsonc`.
 
+If you want to re-upload the whole thing to Drive, first remove the Quip folder from Drive, and then from Bin.  
+Run `_extra_driveResetInfo`, and then you are good to re-run uploading.
+
 ## Updating links
 
 ### Shortcut

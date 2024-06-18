@@ -21,6 +21,7 @@ registerRunTask("QuipDownloadFiles")
 registerRunTask("DriveUploadFiles")
 registerRunTask("DriveUpdateLinks")
 registerRunTask("DriveListDrives")
+registerRunTask("DriveResetInfo")
 
 group = "io.github.jvmusin"
 version = "1.0-SNAPSHOT"
