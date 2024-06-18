@@ -10,7 +10,7 @@ import kotlin.io.path.*
 
 object DriveUpdateLinks {
     private val logger = getLogger()
-    private val driveDomain = Settings.read().driveId
+    private val driveDomain = Settings.read().driveDomain
 
     private fun rebuildDocument(file: Path, linkIdToDriveId: Map<String, String>): Pair<Path, Map<String, String>>? {
         if (file.extension != "docx" && file.extension != "xlsx") return null
