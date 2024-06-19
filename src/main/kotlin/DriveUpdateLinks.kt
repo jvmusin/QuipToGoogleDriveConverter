@@ -1,5 +1,6 @@
 package io.github.jvmusin
 
+import kenichia.quipapi.QuipThread
 import java.io.ByteArrayOutputStream
 import java.nio.file.FileVisitResult
 import java.nio.file.Path
@@ -10,9 +11,11 @@ import kotlin.io.path.*
 
 object DriveUpdateLinks {
     private val logger = getLogger()
-    private val driveDomain = Settings.read().driveDomain
 
-    private fun rebuildDocument(file: Path, linkIdToDriveId: Map<String, String>): Pair<Path, Map<String, String>>? {
+    private fun rebuildDocument(
+        file: Path,
+        linkIdToDriveInfo: Map<String, DriveFileInfo>
+    ): Pair<Path, Map<String, String>>? {
         if (file.extension != "docx" && file.extension != "xlsx") return null
 
         val os = ByteArrayOutputStream()
@@ -29,7 +32,7 @@ object DriveUpdateLinks {
                             continue
                         }
                         val content = bytes.decodeToString()
-                        val (updated, replacements) = replaceLinks(content, linkIdToDriveId)
+                        val (updated, replacements) = replaceLinks(content, linkIdToDriveInfo)
                         if (updated != content) updates += replacements
                         outFileZOS.putNextEntry(ZipEntry(e.name))
                         outFileZOS.write(updated.encodeToByteArray())
@@ -45,14 +48,28 @@ object DriveUpdateLinks {
         return destination to updates
     }
 
+    data class DriveFileInfo(val id: String, val threadType: QuipThread.Type) {
+        fun buildLink(): String {
+            return when (threadType) {
+                QuipThread.Type.DOCUMENT -> "docs.google.com/document/d/$id"
+                QuipThread.Type.SPREADSHEET -> "docs.google.com/spreadsheets/d/$id"
+                QuipThread.Type.SLIDES -> "drive.google.com/file/d/$id"
+                QuipThread.Type.CHAT -> error("Chats not supported")
+            }
+        }
+    }
+
     @JvmStatic
     fun main(args: Array<String>) {
         val fileJsons = getFileJsons()
-        val linkIdToDriveId = fileJsons.entries.associate {
-            val linkId = it.value.quip.getAsJsonObject("thread")
-                .getAsJsonPrimitive("link").asString.removePrefix("https://jetbrains.quip.com/")
+        val linkIdToDriveInfo = fileJsons.entries.associate {
+            val thread = it.value.quip.getAsJsonObject("thread")
+            val type = thread.getAsJsonPrimitive("type").asString
+            val link = thread.getAsJsonPrimitive("link").asString
+            val threadType = QuipThread.Type.valueOf(type.uppercase())
+            val linkId = link.removePrefix("https://jetbrains.quip.com/")
             val driveId = it.value.driveInfo!!.id
-            linkId to driveId
+            linkId to DriveFileInfo(driveId, threadType)
         }
 
         val driveClient = DriveClientFactory.createClient()
@@ -61,7 +78,7 @@ object DriveUpdateLinks {
             val (jsonPath, fileJson) = entry
             val filePath = jsonPath.resolveSibling(fileJson.fileName)
             val prefix = "${i + 1}/$totalCount $filePath"
-            val updatedFileEntry = rebuildDocument(filePath, linkIdToDriveId)
+            val updatedFileEntry = rebuildDocument(filePath, linkIdToDriveInfo)
             if (updatedFileEntry == null) {
                 logger.info("$prefix -- No links found, skipping")
                 continue
@@ -83,15 +100,19 @@ object DriveUpdateLinks {
 
     private fun replaceLinks(
         fileContent: String,
-        linkIdToDriveId: Map<String, String>
+        linkIdToDriveInfo: Map<String, DriveFileInfo>
     ): Pair<String, Map<String, String>> {
-        val linkPattern = Regex("(jetbrains.)?quip.com/[a-zA-Z0-9]+")
+        val linkRegex = Regex("([^/.]+\\.)?quip.com/[a-zA-Z0-9]+")
         var result = fileContent
         val replacements = mutableMapOf<String, String>()
-        for (match in linkPattern.findAll(fileContent).map { it.value }.distinct()) {
+        val matches = linkRegex.findAll(fileContent)
+            .map { it.value }
+            .distinct()
+            .sortedByDescending { it.length } // first process links with a company name before "quip.com"
+        for (match in matches) {
             val linkId = match.substringAfter('/')
-            val driveId = linkIdToDriveId[linkId] ?: continue
-            val replacement = "$driveDomain/document/d/$driveId"
+            val driveFileInfo = linkIdToDriveInfo[linkId] ?: continue
+            val replacement = driveFileInfo.buildLink()
             result = result.replace(match, replacement)
             replacements[match] = replacement
         }
