@@ -4,40 +4,12 @@ import com.google.api.client.http.FileContent
 import com.google.api.services.drive.Drive
 import java.nio.file.Path
 import kotlin.io.path.extension
-import kotlin.time.Duration
-import kotlin.time.Duration.Companion.milliseconds
-import kotlin.time.Duration.Companion.minutes
-import kotlin.time.Duration.Companion.seconds
-import kotlin.time.toJavaDuration
 
 class DriveClient(private val service: Drive) {
-    private val logger = getLogger()
-
-    data class Backoff(val startPeriod: Duration, val maxPeriod: Duration)
-
-    private fun <T> withBackoff(
-        backoff: Backoff = Backoff(startPeriod = 5.seconds, maxPeriod = 30.minutes),
-        operation: Drive.() -> T
-    ): T {
-        val start = System.currentTimeMillis()
-        var sleepPeriod = backoff.startPeriod
-        while (true) {
-            try {
-                return service.operation()
-            } catch (e: Exception) {
-                val timeSpentMillis = System.currentTimeMillis() + sleepPeriod.inWholeMilliseconds - start
-                if (timeSpentMillis.milliseconds > backoff.maxPeriod) throw e
-                logger.warning("Operation failed, sleeping for $sleepPeriod. Reason: ${e.message}")
-                Thread.sleep(sleepPeriod.toJavaDuration())
-                sleepPeriod = minOf(sleepPeriod * 2, backoff.maxPeriod)
-            }
-        }
-    }
-
     fun getOrCreateFolder(name: String, parent: String?): String {
         val folderMimeType = "application/vnd.google-apps.folder"
         val acceptableFolders = withBackoff {
-            files().list().execute().files.filter {
+            service.files().list().execute().files.filter {
                 it.name == name && it.mimeType == folderMimeType
             }
         }
@@ -50,11 +22,11 @@ class DriveClient(private val service: Drive) {
             this.mimeType = folderMimeType
             this.parents = listOfNotNull(parent)
         }
-        return withBackoff { files().create(content).setFields("id").execute().id }
+        return withBackoff { service.files().create(content).setFields("id").execute().id }
     }
 
     fun listDrives(): List<com.google.api.services.drive.model.Drive> = withBackoff {
-        drives().list().setPageSize(100).execute().drives
+        service.drives().list().setPageSize(100).execute().drives
     }
 
     private fun Path.mimeType() = when (extension) {
@@ -72,7 +44,7 @@ class DriveClient(private val service: Drive) {
         }
         val mediaContent = FileContent(mimeType, sourceFile.toFile())
         return withBackoff {
-            files().create(content, mediaContent).apply {
+            service.files().create(content, mediaContent).apply {
                 fields = "id"
                 isSupportsAllDrives = true
             }.execute().id
@@ -83,6 +55,6 @@ class DriveClient(private val service: Drive) {
         val mimeType = sourceFile.mimeType()
         val content = com.google.api.services.drive.model.File()
         val mediaContent = FileContent(mimeType, sourceFile.toFile())
-        withBackoff { files().update(fileId, content, mediaContent).setSupportsAllDrives(true).execute() }
+        withBackoff { service.files().update(fileId, content, mediaContent).setSupportsAllDrives(true).execute() }
     }
 }
