@@ -45,6 +45,8 @@ bin/
 
 ### Custom ###
 downloaded/
+downloaded_users/
+downloaded_private_files/
 src/main/resources/credentials.json
 src/main/resources/quip_access_token.txt
 tokens/

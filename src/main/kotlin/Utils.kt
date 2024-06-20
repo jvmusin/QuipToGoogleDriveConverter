@@ -10,8 +10,7 @@ import java.nio.file.Path
 import java.nio.file.Paths
 import java.nio.file.StandardOpenOption
 import java.util.logging.Logger
-import kotlin.io.path.writeBytes
-import kotlin.io.path.writeText
+import kotlin.io.path.*
 
 fun Any.getLogger(): Logger {
     System.setProperty(
@@ -24,6 +23,8 @@ fun Any.getLogger(): Logger {
 fun gson(): Gson = GsonBuilder().setPrettyPrinting().create()
 
 val downloadedPath: Path = Paths.get("downloaded")
+val downloadedUsersPath: Path = Paths.get("downloaded_users")
+val downloadedPrivateFilesPath: Path = Paths.get("downloaded_private_files")
 
 fun Any.setupQuipClient(debug: Boolean = false) {
     QuipClient.enableDebug(debug)
@@ -41,8 +42,25 @@ private fun Any.toJson0(): JsonObject {
     return jsonObject.apply { remove("html") }
 }
 
-fun QuipThread.toJson(fileName: String): FileJson = FileJson(toJson0(), fileName)
-fun QuipFolder.toJson(): FolderJson = FolderJson(toJson0())
+fun QuipThread.getInnerJson() = toJson0()
+fun QuipFolder.getInnerJson() = toJson0()
+
+fun QuipThread.toJson(fileName: String): FileJson = FileJson(getInnerJson(), fileName)
+fun QuipFolder.toJson(): FolderJson = FolderJson(getInnerJson())
+
+fun JsonObject.toQuipThreadReflection(): QuipThread {
+    val ctor = QuipThread::class.java.declaredConstructors.single()
+    ctor.isAccessible = true
+    return ctor.newInstance(this) as QuipThread
+}
+
+inline fun <reified T : Any> Path.getOrCreate(create: () -> T): T {
+    if (!exists()) {
+        createParentDirectories()
+        createNewFile(create())
+    }
+    return gson().fromJson(readText(), T::class.java)
+}
 
 data class FileJson(
     val quip: JsonObject,

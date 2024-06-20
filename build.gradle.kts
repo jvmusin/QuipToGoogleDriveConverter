@@ -18,6 +18,7 @@ fun registerRunTask(mainClass: String) = tasks.register(mainClass.decapitalizeAs
 }
 
 registerRunTask("QuipDownloadFiles")
+registerRunTask("QuipListPrivateFiles")
 registerRunTask("DriveUploadFiles")
 registerRunTask("DriveUpdateLinks")
 registerRunTask("DriveListDrives")

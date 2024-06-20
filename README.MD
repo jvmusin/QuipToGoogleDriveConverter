@@ -9,7 +9,8 @@ and then updates links to documents from Quip to newly uploaded documents to Goo
 
 To use this tool, you have to:
 
-1. Run `_1_quipDownloadApi` script to download and build Quip API Client (you should have maven installed locally)
+1. **!NOT REQUIRED ANYMORE! SKIP THIS STEP!** Run `_1_quipDownloadApi` script to download and build Quip API Client (you
+   should have maven installed locally)
 2. Create a personal access token for Quip following [this instruction](https://quip.com/api/personal-token), and put
    the token as plain text into `src/main/resources/quip_access_token.txt` file
 3. Create credentials for Google Drive following
@@ -122,3 +123,15 @@ When you run `DriveUpdateLinks`, it skims through all the links in files and rep
 file.  
 Then the updated file is saved under `{QUIP_ID}_updated.(extension)`.  
 Then the file on Google Drive is updated by this `_updated` copy.
+
+## Listing private files
+
+### Shortcut
+
+`_extra_quipListPrivateFiles`
+
+### How to
+
+You can list all files that exist on Quip, but not visible to all members of the quip folder we are downloading.  
+For this to work, you need Admins Quip API key. 
+Run `_extra_quipListPrivateFiles` to do that. It will log all these files into console and to `private_files.txt` file.
