@@ -4,7 +4,6 @@ import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
-import kotlin.time.toJavaDuration
 
 data class Backoff(val startPeriod: Duration, val maxPeriod: Duration)
 
@@ -21,7 +20,7 @@ fun <T> Any.withBackoff(
             val timeSpentMillis = System.currentTimeMillis() + sleepPeriod.inWholeMilliseconds - start
             if (timeSpentMillis.milliseconds > backoff.maxPeriod) throw e
             getLogger().warning("Operation failed, sleeping for $sleepPeriod. Reason: ${e.message}")
-            Thread.sleep(sleepPeriod.toJavaDuration())
+            Thread.sleep(sleepPeriod.inWholeMilliseconds)
             sleepPeriod = minOf(sleepPeriod * 2, backoff.maxPeriod)
         }
     }
