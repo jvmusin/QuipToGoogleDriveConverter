@@ -37,7 +37,7 @@ fun Path.createNewFile(content: Any) = createNewFile(gson().toJson(content))
 
 private fun Any.toJson0(): JsonObject {
     val field = javaClass.superclass.getDeclaredField("_jsonObject")
-    field.trySetAccessible()
+    field.isAccessible = true
     val jsonObject = field.get(this) as JsonObject
     return jsonObject.apply { remove("html") }
 }

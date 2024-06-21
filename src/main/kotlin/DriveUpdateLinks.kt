@@ -25,7 +25,7 @@ object DriveUpdateLinks {
                 ZipOutputStream(os).use { outFileZOS ->
                     while (true) {
                         val e = fileZIS.nextEntry ?: break
-                        val bytes = fileZIS.readAllBytes()
+                        val bytes = fileZIS.readBytes()
                         if (!e.name.endsWith(".xml.rels")) {
                             outFileZOS.putNextEntry(e)
                             outFileZOS.write(bytes)

@@ -13,7 +13,7 @@ data class Settings(
             requireNotNull(stream) {
                 "Settings file not found (settings.jsonc)"
             }
-            val settingsText = stream.use { it.readAllBytes().decodeToString() }
+            val settingsText = stream.use { it.readBytes().decodeToString() }
             return gson().fromJson(settingsText, Settings::class.java)
         }
 
