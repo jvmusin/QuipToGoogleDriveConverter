@@ -6,6 +6,7 @@ import com.google.gson.JsonObject
 import kenichia.quipapi.QuipClient
 import kenichia.quipapi.QuipFolder
 import kenichia.quipapi.QuipThread
+import kenichia.quipapi.QuipUser
 import java.nio.file.Path
 import java.nio.file.Paths
 import java.nio.file.StandardOpenOption
@@ -35,6 +36,12 @@ fun Path.createNewFile(content: String) = writeText(content, Charsets.UTF_8, Sta
 fun Path.createNewFile(content: ByteArray) = writeBytes(content, StandardOpenOption.CREATE_NEW)
 fun Path.createNewFile(content: Any) = createNewFile(gson().toJson(content))
 
+fun Path.isJson() = extension == "json"
+fun Path.isFileJson() = isJson() && name != "_folder.json"
+fun Path.isFolderJson() = name == "_folder.json"
+fun Path.readFileJson() = if (isFileJson()) gson().fromJson(readText(), FileJson::class.java) else null
+fun Path.readFolderJson() = if (isFolderJson()) gson().fromJson(readText(), FolderJson::class.java) else null
+
 private fun Any.toJson0(): JsonObject {
     val field = javaClass.superclass.getDeclaredField("_jsonObject")
     field.isAccessible = true
@@ -44,6 +51,7 @@ private fun Any.toJson0(): JsonObject {
 
 fun QuipThread.getInnerJson() = toJson0()
 fun QuipFolder.getInnerJson() = toJson0()
+fun QuipUser.getInnerJson() = toJson0()
 
 fun QuipThread.toJson(fileName: String): FileJson = FileJson(getInnerJson(), fileName)
 fun QuipFolder.toJson(): FolderJson = FolderJson(getInnerJson())
@@ -52,6 +60,12 @@ fun JsonObject.toQuipThreadReflection(): QuipThread {
     val ctor = QuipThread::class.java.declaredConstructors.single()
     ctor.isAccessible = true
     return ctor.newInstance(this) as QuipThread
+}
+
+fun JsonObject.toQuipFolderReflection(): QuipFolder {
+    val ctor = QuipFolder::class.java.declaredConstructors.single()
+    ctor.isAccessible = true
+    return ctor.newInstance(this) as QuipFolder
 }
 
 inline fun <reified T : Any> Path.getOrCreate(create: () -> T): T {
@@ -66,7 +80,12 @@ data class FileJson(
     val quip: JsonObject,
     val fileName: String,
     val driveInfo: FileDriveInfo? = null,
-)
+) {
+    fun quipThread() = quip.toQuipThreadReflection()
+}
 
-data class FolderJson(val quip: JsonObject)
+data class FolderJson(val quip: JsonObject) {
+    fun quipFolder() = quip.toQuipFolderReflection()
+}
+
 data class FileDriveInfo(val id: String)

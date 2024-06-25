@@ -133,5 +133,18 @@ Then the file on Google Drive is updated by this `_updated` copy.
 ### How to
 
 You can list all files that exist on Quip, but not visible to all members of the quip folder we are downloading.  
-For this to work, you need Admins Quip API key. 
+For this to work, you need Admins Quip API key.  
 Run `_extra_quipListPrivateFiles` to do that. It will log all these files into console and to `private_files.txt` file.
+
+## Transferring ownership on Google Drive
+
+### How to
+
+First, we need to get a mapping from user id on Quip to user email on Google Drive.  
+You can get a list of all document authors on Quip in format "id name" via `_extra_quipListDocumentAuthors` script.  
+To get all users in you Google Workspace, you can
+use [this instruction](https://support.google.com/a/answer/7348070?hl=en).
+
+You have to do the mapping by yourself and put it into !!!TODO!!! file in a format !!!TODO!!!
+
+Then !!!TODO!!!
