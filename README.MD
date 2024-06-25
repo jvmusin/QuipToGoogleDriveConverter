@@ -145,6 +145,12 @@ You can get a list of all document authors on Quip in format "id name" via `_ext
 To get all users in you Google Workspace, you can
 use [this instruction](https://support.google.com/a/answer/7348070?hl=en).
 
-You have to do the mapping by yourself and put it into !!!TODO!!! file in a format !!!TODO!!!
+You have to do the mapping by yourself and put it into `quipId_to_driveEmail.txt` file in the root of the project,
+in a format `quipId driveEmail`, one user per line:
 
-Then !!!TODO!!!
+```
+quipuser0 new_owner1@company.com
+quipuser321 new_owner321@company.com
+```
+
+Then run `_extra_quipTransferOwnership`. The script will transfer ownership of all files one by one.

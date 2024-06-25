@@ -20,6 +20,7 @@ fun registerRunTask(mainClass: String) = tasks.register(mainClass.decapitalizeAs
 registerRunTask("QuipDownloadFiles")
 registerRunTask("QuipListPrivateFiles")
 registerRunTask("QuipListDocumentAuthors")
+registerRunTask("QuipTransferOwnership")
 registerRunTask("DriveUploadFiles")
 registerRunTask("DriveUpdateLinks")
 registerRunTask("DriveListDrives")
@@ -47,4 +48,7 @@ tasks.test {
 }
 kotlin {
     jvmToolchain(11)
+    compilerOptions {
+        optIn = listOf("kotlin.io.path.ExperimentalPathApi")
+    }
 }

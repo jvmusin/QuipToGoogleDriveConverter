@@ -2,6 +2,7 @@ package io.github.jvmusin
 
 import com.google.api.client.http.FileContent
 import com.google.api.services.drive.Drive
+import com.google.api.services.drive.model.Permission
 import java.nio.file.Path
 import kotlin.io.path.extension
 
@@ -56,5 +57,19 @@ class DriveClient(private val service: Drive) {
         val content = com.google.api.services.drive.model.File()
         val mediaContent = FileContent(mimeType, sourceFile.toFile())
         withBackoff { service.files().update(fileId, content, mediaContent).setSupportsAllDrives(true).execute() }
+    }
+
+    fun transferOwnership(fileId: String, newOwnerEmailAddress: String) {
+        withBackoff {
+            val permission = service.permissions().create(fileId, Permission().apply {
+                emailAddress = newOwnerEmailAddress
+                role = "writer"
+                type = "user"
+            }).execute()
+            println(permission)
+            service.permissions().update(fileId, permission.id, Permission().apply {
+                role = "writer"
+            }).setTransferOwnership(true).execute()
+        }
     }
 }
