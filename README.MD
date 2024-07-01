@@ -140,17 +140,16 @@ Run `_extra_quipListPrivateFiles` to do that. It will log all these files into c
 
 ### How to
 
-First, we need to get a mapping from user id on Quip to user email on Google Drive.  
-You can get a list of all document authors on Quip in format "id name" via `_extra_quipListDocumentAuthors` script.  
-To get all users in you Google Workspace, you can
-use [this instruction](https://support.google.com/a/answer/7348070?hl=en).
+First, get all Quip users from Quip SCIM API - https://quip.com/dev/scim/documentation/current#operation/get_users_v1  
+Put the resulting file in `quip_users_scim.json` in the root of the project.  
+Then, you can run `_extra_quipTransferOwnership`.  
+If the execution fails because you don't have some users info, you have to add this user manually to a
+file `quip_email_extra.json` and repeat:
 
-You have to do the mapping by yourself and put it into `quipId_to_driveEmail.txt` file in the root of the project,
-in a format `quipId driveEmail`, one user per line:
-
+```json
+{
+  "QUIP_USER_ID": "some.email@com.org",
+  "QUIP_USER_ID_2": "some-other-email@google.com",
+  "QUIP_USER_TO_IGNORE": ""
+} 
 ```
-quipuser0 new_owner1@company.com
-quipuser321 new_owner321@company.com
-```
-
-Then run `_extra_quipTransferOwnership`. The script will transfer ownership of all files one by one.

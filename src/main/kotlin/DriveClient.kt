@@ -66,9 +66,8 @@ class DriveClient(private val service: Drive) {
                 role = "writer"
                 type = "user"
             }).execute()
-            println(permission)
             service.permissions().update(fileId, permission.id, Permission().apply {
-                role = "writer"
+                role = "owner"
             }).setTransferOwnership(true).execute()
         }
     }
