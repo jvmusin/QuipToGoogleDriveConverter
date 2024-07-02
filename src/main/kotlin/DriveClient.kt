@@ -65,10 +65,10 @@ class DriveClient(private val service: Drive) {
                 emailAddress = newOwnerEmailAddress
                 role = "writer"
                 type = "user"
-            }).execute()
+            }).setSupportsAllDrives(true).setSendNotificationEmail(false).execute()
             service.permissions().update(fileId, permission.id, Permission().apply {
                 role = "owner"
-            }).setTransferOwnership(true).execute()
+            }).setSupportsAllDrives(true).setTransferOwnership(true).execute()
         }
     }
 }
