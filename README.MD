@@ -18,6 +18,9 @@ To use this tool, you have to:
    to `src/main/resources/credentials.json`
 4. If you are going to upload files to a shared drive, run `_extra_driveListDrives`, find id of your drive, and put it
    under `driveId` field in `src/main/resources/settings.jsonc`
+5. If you want to transfer files ownership or add author info in at the beginning of documents, get all Quip users from
+   Quip SCIM API at https://quip.com/dev/scim/documentation/current#operation/get_users_v1  
+   Put the resulting file in `quip_users_scim.json` in the root of the project.
 
 ## TLDR
 
@@ -114,7 +117,9 @@ To update links, run `DriveUpdateLinks`.
 It will check links in all files, and if it finds links to update, it updates them and uploads an updated file on Google
 Drive.  
 If your other files are not in `docs.google.com`, but under some specific domain, then open any file on drive, check the
-domain, and replace `driveDomain` field in `src/main/resources/settings.jsonc` with a correct one.
+domain, and replace `driveDomain` field in `src/main/resources/settings.jsonc` with a correct one.  
+If you want to additionally include author name at the beginning of documents, set `"includeAuthorName": true`
+in `src/resources/settings.jsonc`.
 
 ### How it works
 

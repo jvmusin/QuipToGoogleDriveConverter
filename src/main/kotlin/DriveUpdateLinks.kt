@@ -12,6 +12,75 @@ import kotlin.io.path.*
 object DriveUpdateLinks {
     private val logger = getLogger()
 
+    interface FileModifier {
+        fun filter(entry: ZipEntry, documentPath: Path): Boolean
+
+        fun process(entry: ZipEntry, content: ByteArray, documentPath: Path): Pair<ZipEntry, ByteArray>
+
+        object Identity : FileModifier {
+            override fun filter(entry: ZipEntry, documentPath: Path) = true
+            override fun process(entry: ZipEntry, content: ByteArray, documentPath: Path) = entry to content
+        }
+    }
+
+    class ReplaceLinksModifier(
+        private val linkIdToDriveInfo: Map<String, DriveFileInfo>
+    ) : FileModifier {
+        private val updates = mutableMapOf<String, String>()
+        override fun filter(entry: ZipEntry, documentPath: Path): Boolean = entry.name.endsWith(".xml.rels")
+        override fun process(entry: ZipEntry, content: ByteArray, documentPath: Path): Pair<ZipEntry, ByteArray> {
+            val contentString = content.decodeToString()
+            require(content.contentEquals(contentString.encodeToByteArray())) {
+                "Decoding+Encoding gives different result"
+            }
+
+            val (updated, replacements) = replaceLinks(contentString, linkIdToDriveInfo)
+            if (updated != contentString) updates += replacements
+            return ZipEntry(entry.name) to updated.encodeToByteArray()
+        }
+
+        fun updates() = updates.toMap()
+    }
+
+    class InsertAuthorModifier : FileModifier {
+        private val userRepository = QuipUserRepository()
+        override fun filter(entry: ZipEntry, documentPath: Path) =
+            documentPath.extension == "docx" && entry.name == "word/document.xml"
+
+        override fun process(entry: ZipEntry, content: ByteArray, documentPath: Path): Pair<ZipEntry, ByteArray> {
+            val contentString = content.decodeToString()
+            require(content.contentEquals(contentString.encodeToByteArray())) {
+                "Decoding+Encoding gives different result"
+            }
+
+            val fileJson = documentPath.resolveSibling(documentPath.nameWithoutExtension + ".json").readFileJson()
+                ?: error("Not found file json for $documentPath")
+            val authorId = fileJson.quipThread().authorId
+            var authorString = ""
+            val user = userRepository.getUser(authorId)
+            if (user != null) {
+                val email = when {
+                    user.emails.isEmpty() -> ""
+                    user.emails.size == 1 -> ", email ${user.emails.first()}"
+                    else -> ", emails ${user.emails.joinToString(", ")}"
+                }
+                authorString += "Author: ${user.name.formatted}" + email
+            } else {
+                logger.warning("$documentPath -- User info not found for user $authorId")
+                authorString += "Author: id $authorId"
+            }
+            val updatedContent = contentString.replaceFirst(
+                "<w:body>",
+                "<w:body><w:p><w:r><w:t>$authorString</w:t></w:r></w:p>"
+            )
+            if (contentString == updatedContent) {
+                error("Not found <w:body> tag")
+            }
+
+            return ZipEntry(entry.name) to updatedContent.encodeToByteArray()
+        }
+    }
+
     private fun rebuildDocument(
         file: Path,
         linkIdToDriveInfo: Map<String, DriveFileInfo>
@@ -19,33 +88,32 @@ object DriveUpdateLinks {
         if (file.extension != "docx" && file.extension != "xlsx") return null
 
         val os = ByteArrayOutputStream()
-        val updates = mutableMapOf<String, String>()
+        val replaceLinksModifier = ReplaceLinksModifier(linkIdToDriveInfo)
+        val modifiers = buildList {
+            add(replaceLinksModifier)
+            if (Settings.read().includeAuthorName) add(InsertAuthorModifier())
+            add(FileModifier.Identity)
+        }
         file.inputStream().use { fileIS ->
             ZipInputStream(fileIS).use { fileZIS ->
                 ZipOutputStream(os).use { outFileZOS ->
                     while (true) {
                         val e = fileZIS.nextEntry ?: break
                         val bytes = fileZIS.readBytes()
-                        if (!e.name.endsWith(".xml.rels")) {
-                            outFileZOS.putNextEntry(e)
-                            outFileZOS.write(bytes)
-                            continue
-                        }
-                        val content = bytes.decodeToString()
-                        val (updated, replacements) = replaceLinks(content, linkIdToDriveInfo)
-                        if (updated != content) updates += replacements
-                        outFileZOS.putNextEntry(ZipEntry(e.name))
-                        outFileZOS.write(updated.encodeToByteArray())
+
+                        val modifier = modifiers.first { it.filter(e, file) }
+                        val (newEntry, newContent) = modifier.process(e, bytes, file)
+                        outFileZOS.putNextEntry(newEntry)
+                        outFileZOS.write(newContent)
                     }
                 }
             }
         }
 
-        if (updates.isEmpty()) return null
         val destination = file.resolveSibling(file.name.replace(".", "_updated."))
         destination.deleteIfExists()
         destination.writeBytes(os.toByteArray())
-        return destination to updates
+        return destination to replaceLinksModifier.updates()
     }
 
     data class DriveFileInfo(val id: String, val threadType: QuipThread.Type) {
@@ -72,7 +140,16 @@ object DriveUpdateLinks {
             linkId to DriveFileInfo(driveId, threadType)
         }
 
-        val driveClient = DriveClientFactory.createClient()
+        if (Settings.read().includeAuthorName) {
+            val userRepository = QuipUserRepository()
+            for (fileJson in fileJsons.values) {
+                val authorId = fileJson.quipThread().authorId
+                if (userRepository.getUser(authorId) == null) {
+                    error("Not found user with id $authorId")
+                }
+            }
+        }
+
         val totalCount = fileJsons.size
         for ((i, entry) in fileJsons.entries.withIndex()) {
             val (jsonPath, fileJson) = entry
@@ -87,6 +164,7 @@ object DriveUpdateLinks {
                 logger.info("$prefix -- Made replacement $from -> $to")
             }
 
+            val driveClient = DriveClientFactory.createClient()
             logger.info("$prefix -- Updating file")
             driveClient.updateFile(fileJson.driveInfo!!.id, updatedFileEntry.first)
             logger.info("$prefix -- File updated")
