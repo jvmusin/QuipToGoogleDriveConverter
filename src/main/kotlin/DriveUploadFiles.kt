@@ -33,17 +33,13 @@ object DriveUploadFiles {
     )
 
     private fun visitDocumentJsonFile(file: Path, state: State, service: DriveClient) {
-        require(file.extension == "json" || file.name != "_folder.json") {
+        val fileJson = requireNotNull(file.readFileJson()) {
             "Not a json file for a document: $file"
         }
-
-        val fileJson = gson().fromJson(
-            file.readText(), FileJson::class.java
-        )
         val parsedJson = fileJson.quip.getAsJsonObject("thread")
         val fullFileName = (state.driveFolderNames + parsedJson.getTitleAndId()).joinToString(" > ")
 
-        if (fileJson.driveInfo != null) {
+        if (fileJson.driveInfo != null && !Settings.read().forceDriveReupload) {
             logger.info("$fullFileName -- Skipping previously uploaded file with Drive id ${fileJson.driveInfo.id}")
             return
         }

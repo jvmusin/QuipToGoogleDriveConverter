@@ -6,7 +6,8 @@ data class Settings(
     val quipCompanyId: String,
     val driveDomain: String,
     val driveFolderName: String,
-    val includeAuthorName: Boolean
+    val includeAuthorName: Boolean,
+    val forceDriveReupload: Boolean
 ) {
     companion object {
         fun read(): Settings {
