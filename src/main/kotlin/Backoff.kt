@@ -19,6 +19,7 @@ fun <T> Any.withBackoff(
         } catch (e: Exception) {
             val timeSpentMillis = System.currentTimeMillis() + sleepPeriod.inWholeMilliseconds - start
             if (timeSpentMillis.milliseconds > backoff.maxPeriod) throw e
+            e.printStackTrace()
             getLogger().warning("Operation failed, sleeping for $sleepPeriod. Reason: ${e.message}")
             Thread.sleep(sleepPeriod.inWholeMilliseconds)
             sleepPeriod = minOf(sleepPeriod * 2, backoff.maxPeriod)
