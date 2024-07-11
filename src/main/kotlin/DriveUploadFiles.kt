@@ -10,7 +10,7 @@ object DriveUploadFiles {
     fun main(args: Array<String>) {
         val client = DriveClientFactory.createClient()
         val settings = Settings.read()
-        val quipFolder = client.getOrCreateFolder(name = settings.driveFolderName, parent = settings.driveId)
+        val quipFolder = client.getOrCreateFolder(name = settings.driveFolderName, parent = null)
         visitDirectory(
             downloadedPath,
             State(
