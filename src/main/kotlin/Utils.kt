@@ -37,7 +37,7 @@ fun Path.createNewFile(content: ByteArray) = writeBytes(content, StandardOpenOpt
 fun Path.createNewFile(content: Any) = createNewFile(gson().toJson(content))
 
 fun Path.isJson() = extension == "json"
-fun Path.isFileJson() = isJson() && name != "_folder.json"
+fun Path.isFileJson() = isJson() && !isFolderJson()
 fun Path.isFolderJson() = name == "_folder.json"
 fun Path.readFileJson() = if (isFileJson()) gson().fromJson(readText(), FileJson::class.java) else null
 fun Path.readFolderJson() = if (isFolderJson()) gson().fromJson(readText(), FolderJson::class.java) else null
@@ -45,8 +45,7 @@ fun Path.readFolderJson() = if (isFolderJson()) gson().fromJson(readText(), Fold
 private fun Any.toJson0(): JsonObject {
     val field = javaClass.superclass.getDeclaredField("_jsonObject")
     field.isAccessible = true
-    val jsonObject = field.get(this) as JsonObject
-    return jsonObject.apply { remove("html") }
+    return field.get(this) as JsonObject
 }
 
 fun QuipThread.getInnerJson() = toJson0()
@@ -88,4 +87,4 @@ data class FolderJson(val quip: JsonObject) {
     fun quipFolder() = quip.toQuipFolderReflection()
 }
 
-data class FileDriveInfo(val id: String)
+data class FileDriveInfo(val id: String, val commentsId: String? = null)

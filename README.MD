@@ -158,3 +158,18 @@ file `quip_email_extra.json` and repeat:
   "QUIP_USER_TO_IGNORE": ""
 } 
 ```
+
+## Commentaries
+
+### Shortcuts
+
+`./_extra_quipDownloadComments`
+`./_extra_driveUploadComments`
+
+### How to
+
+To download comments from Quip, run `./_extra_quipDownloadComments`.  
+This script will download comments and save them in a Markdown file.
+
+Then upload comments to Google Drive using `./_extra_driveUploadComments`.  
+This script will save comments file under the same directory as the original file with a name `ORIG_FILE [comments]`.
