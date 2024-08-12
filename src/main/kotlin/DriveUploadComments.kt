@@ -36,6 +36,7 @@ object DriveUploadComments {
         val fileJson = requireNotNull(file.readFileJson()) {
             "Not a json file for a document: $file"
         }
+        val location = ProcessAllFiles.FileLocation(file)
         val parsedJson = fileJson.quip.getAsJsonObject("thread")
         val fullFileName = (state.driveFolderNames + parsedJson.getTitleAndId()).joinToString(" > ")
 
@@ -45,11 +46,13 @@ object DriveUploadComments {
             return
         }
 
-        val driveInfo = requireNotNull(fileJson.driveInfo) {
-            "$fullFileName -- File is not uploaded to Google Drive"
+        requireNotNull(location.json.driveFileId) {
+            "File is not uploaded to Google Drive"
         }
-        if (driveInfo.commentsId != null && !Settings.read().forceDriveReupload) {
-            logger.info("$fullFileName -- Skipping previously uploaded comments file with Drive id ${driveInfo.commentsId}")
+
+        val commentsFileId = location.json.driveCommentsFileId
+        if (commentsFileId != null && !Settings.read().forceDriveReupload) {
+            logger.info("$fullFileName -- Skipping previously uploaded comments file with Drive id $commentsFileId")
             return
         }
 
@@ -60,7 +63,7 @@ object DriveUploadComments {
             sourceFile = commentsFile
         )
         file.deleteExisting()
-        file.createNewFile(fileJson.copy(driveInfo = driveInfo.copy(commentsId = driveId)))
+        file.createNewFile(fileJson.copy(driveCommentsFileId = driveId))
         logger.info("$fullFileName -- Saved comments file on Drive with id $driveId")
         FileVisitResult.CONTINUE
     }

@@ -28,8 +28,11 @@ val downloadedUsersPath: Path = Paths.get("downloaded_users")
 val downloadedPrivateFilesPath: Path = Paths.get("downloaded_private_files")
 
 fun Any.setupQuipClient(debug: Boolean = false) {
+    val logger = getLogger()
+    logger.info("Initializing Quip Client")
     QuipClient.enableDebug(debug)
     QuipClient.setAccessToken(javaClass.getResource("/quip_access_token.txt")!!.readText())
+    logger.info("Quip Client successfully initialized")
 }
 
 fun Path.createNewFile(content: String) = writeText(content, Charsets.UTF_8, StandardOpenOption.CREATE_NEW)
@@ -53,6 +56,7 @@ fun QuipFolder.getInnerJson() = toJson0()
 fun QuipUser.getInnerJson() = toJson0()
 
 fun QuipThread.toJson(fileName: String): FileJson = FileJson(getInnerJson(), fileName)
+fun QuipThread.toJson(): FileJson = FileJson(getInnerJson())
 fun QuipFolder.toJson(): FolderJson = FolderJson(getInnerJson())
 
 fun JsonObject.toQuipThreadReflection(): QuipThread {
@@ -77,14 +81,36 @@ inline fun <reified T : Any> Path.getOrCreate(create: () -> T): T {
 
 data class FileJson(
     val quip: JsonObject,
-    val fileName: String,
-    val driveInfo: FileDriveInfo? = null,
+    val driveFileId: String? = null,
+    val driveCommentsFileId: String? = null,
+    val commentsDownloaded: String? = null,
 ) {
     fun quipThread() = quip.toQuipThreadReflection()
 }
 
-data class FolderJson(val quip: JsonObject) {
+data class FolderJson(val quip: JsonObject, val driveFolderId: String? = null) {
     fun quipFolder() = quip.toQuipFolderReflection()
 }
 
-data class FileDriveInfo(val id: String, val commentsId: String? = null)
+data class Progress(private val s: String) {
+    fun named(name: String) = Progress("$s > $name")
+    fun withIndex(index: Int, total: Int) = Progress("$s ($index/$total)")
+    fun action(name: String) = "$s — $name"
+    override fun toString() = s
+}
+
+enum class QuipFileType(
+    val quipType: QuipThread.Type,
+    val extension: String,
+    val download: QuipThread.() -> ByteArray
+) {
+    Docx(QuipThread.Type.DOCUMENT, "docx", QuipThread::exportAsDocx),
+    Slides(QuipThread.Type.SLIDES, "pdf", QuipThread::exportAsPdf),
+    Spreadsheet(QuipThread.Type.SPREADSHEET, "xlsx", QuipThread::exportAsXlsx);
+
+    companion object {
+        fun fromQuipThread(thread: QuipThread): QuipFileType {
+            return entries.first { it.quipType == thread.type }
+        }
+    }
+}

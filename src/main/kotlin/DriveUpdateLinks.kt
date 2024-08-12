@@ -1,14 +1,15 @@
 package io.github.jvmusin
 
+import io.github.jvmusin.ProcessAllFiles.FileLocation
 import kenichia.quipapi.QuipThread
 import java.io.ByteArrayOutputStream
-import java.nio.file.FileVisitResult
 import java.nio.file.Path
 import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
 import java.util.zip.ZipOutputStream
 import kotlin.io.path.*
 
+// TODO: Rewrite to use ProcessAllFiles
 object DriveUpdateLinks {
     private val logger = getLogger()
 
@@ -131,19 +132,19 @@ object DriveUpdateLinks {
     fun main(args: Array<String>) {
         val fileJsons = getFileJsons()
         val linkIdToDriveInfo = fileJsons.entries.associate {
-            val thread = it.value.quip.getAsJsonObject("thread")
+            val thread = it.value.json.quip.getAsJsonObject("thread")
             val type = thread.getAsJsonPrimitive("type").asString
             val link = thread.getAsJsonPrimitive("link").asString
             val threadType = QuipThread.Type.valueOf(type.uppercase())
             val linkId = link.removePrefix("https://jetbrains.quip.com/")
-            val driveId = it.value.driveInfo!!.id
-            linkId to DriveFileInfo(driveId, threadType)
+            val driveId = it.value.json.driveFileId
+            linkId to DriveFileInfo(driveId!!, threadType) // TODO: Check file existence instead of !!
         }
 
         if (Settings.read().includeAuthorName) {
             val userRepository = QuipUserRepository()
             for (fileJson in fileJsons.values) {
-                val authorId = fileJson.quipThread().authorId
+                val authorId = fileJson.json.quipThread().authorId
                 if (userRepository.getUser(authorId) == null) {
                     error("Not found user with id $authorId")
                 }
@@ -153,7 +154,7 @@ object DriveUpdateLinks {
         val totalCount = fileJsons.size
         for ((i, entry) in fileJsons.entries.withIndex()) {
             val (jsonPath, fileJson) = entry
-            val filePath = jsonPath.resolveSibling(fileJson.fileName)
+            val filePath = fileJson.documentPath
             val prefix = "${i + 1}/$totalCount $filePath"
             val updatedFileEntry = rebuildDocument(filePath, linkIdToDriveInfo)
             if (updatedFileEntry == null) {
@@ -166,7 +167,7 @@ object DriveUpdateLinks {
 
             val driveClient = DriveClientFactory.createClient()
             logger.info("$prefix -- Updating file")
-            driveClient.updateFile(fileJson.driveInfo!!.id, updatedFileEntry.first)
+            driveClient.updateFile(fileJson.json.driveFileId!!, updatedFileEntry.first)
             logger.info("$prefix -- File updated")
         }
     }
@@ -197,19 +198,14 @@ object DriveUpdateLinks {
         return result to replacements
     }
 
-    @OptIn(ExperimentalPathApi::class)
-    fun getFileJsons(): Map<Path, FileJson> {
-        val fileJsons = hashMapOf<Path, FileJson>()
-        downloadedPath.visitFileTree {
-            onVisitFile { file, _ ->
-                if (file.name != "_folder.json" && file.extension == "json") {
-                    val fileJson = gson().fromJson(file.readText(), FileJson::class.java)
-                    fileJsons[file] = fileJson
-                }
-
-                FileVisitResult.CONTINUE
+    private fun getFileJsons(): Map<Path, FileLocation> {
+        val fileJsons = hashMapOf<Path, FileLocation>()
+        val visitor = object : ProcessAllFiles() {
+            override fun visitFile(location: FileLocation) {
+                fileJsons[location.path] = location
             }
         }
+        visitor.run()
         return fileJsons
     }
 }
