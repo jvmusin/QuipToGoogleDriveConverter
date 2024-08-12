@@ -35,8 +35,7 @@ fun Any.setupQuipClient(debug: Boolean = false) {
     logger.info("Quip Client successfully initialized")
 }
 
-fun Path.createNewFile(content: String) = writeText(content, Charsets.UTF_8, StandardOpenOption.CREATE_NEW)
-fun Path.createNewFile(content: ByteArray) = writeBytes(content, StandardOpenOption.CREATE_NEW)
+private fun Path.createNewFile(content: String) = writeText(content, Charsets.UTF_8, StandardOpenOption.CREATE_NEW)
 fun Path.createNewFile(content: Any) = createNewFile(gson().toJson(content))
 
 fun Path.isJson() = extension == "json"
@@ -55,7 +54,6 @@ fun QuipThread.getInnerJson() = toJson0()
 fun QuipFolder.getInnerJson() = toJson0()
 fun QuipUser.getInnerJson() = toJson0()
 
-fun QuipThread.toJson(fileName: String): FileJson = FileJson(getInnerJson(), fileName)
 fun QuipThread.toJson(): FileJson = FileJson(getInnerJson())
 fun QuipFolder.toJson(): FolderJson = FolderJson(getInnerJson())
 

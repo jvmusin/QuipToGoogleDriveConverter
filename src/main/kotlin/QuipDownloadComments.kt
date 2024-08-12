@@ -8,7 +8,6 @@ import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 import kotlin.io.path.deleteIfExists
-import kotlin.io.path.nameWithoutExtension
 import kotlin.io.path.visitFileTree
 import kotlin.io.path.writeText
 
@@ -59,8 +58,10 @@ object QuipDownloadComments {
                                     logger.warning("${thread.id} -- More than 1 section?? Using the first one")
                                     error("more than 1 section")
                                 }
-                                val section = sections.single() + if (sections.size == 1) "" else " \n AND ${sections.size - 1} SECTIONS"
-                                page.getElementById(section)?.text() ?: "!!! This section was deleted from the document !!!"
+                                val section =
+                                    sections.single() + if (sections.size == 1) "" else " \n AND ${sections.size - 1} SECTIONS"
+                                page.getElementById(section)?.text()
+                                    ?: "!!! This section was deleted from the document !!!"
                             }
                         }
 
@@ -76,7 +77,7 @@ object QuipDownloadComments {
                             }.let(::appendLine)
                         }
 
-                        file.resolveSibling(file.nameWithoutExtension + "_comments.md").apply {
+                        file.resolveSibling(ProcessAllFiles.FileLocation(file).commentsPath).apply {
                             deleteIfExists()
                             writeText(commentsDoc)
                         }

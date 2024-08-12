@@ -111,7 +111,7 @@ object DriveUpdateLinks {
             }
         }
 
-        val destination = file.resolveSibling(file.name.replace(".", "_updated."))
+        val destination = FileLocation(file.resolveSibling(file.nameWithoutExtension + ".json")).updatedDocumentPath
         destination.deleteIfExists()
         destination.writeBytes(os.toByteArray())
         return destination to replaceLinksModifier.updates()
@@ -153,7 +153,7 @@ object DriveUpdateLinks {
 
         val totalCount = fileJsons.size
         for ((i, entry) in fileJsons.entries.withIndex()) {
-            val (jsonPath, fileJson) = entry
+            val (_, fileJson) = entry
             val filePath = fileJson.documentPath
             val prefix = "${i + 1}/$totalCount $filePath"
             val updatedFileEntry = rebuildDocument(filePath, linkIdToDriveInfo)
