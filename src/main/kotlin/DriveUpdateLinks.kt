@@ -200,7 +200,7 @@ object DriveUpdateLinks {
 
     private fun getFileJsons(): Map<Path, FileLocation> {
         val fileJsons = hashMapOf<Path, FileLocation>()
-        val visitor = object : ProcessAllFiles() {
+        val visitor = object : ProcessAllFiles("Collecting file jsons") {
             override fun visitFile(location: FileLocation) {
                 fileJsons[location.path] = location
             }

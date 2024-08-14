@@ -8,16 +8,14 @@ object DriveUploadFiles {
         Visitor().start()
     }
 
-    class Visitor : ProcessAllFiles() {
+    private class Visitor : ProcessAllFiles() {
         private val client = DriveClientFactory.createClient()
         private val driveFolderIdStack = ArrayDeque<String>()
         private fun currentDriveFolder() = driveFolderIdStack.lastOrNull()
 
         override fun visitFile(location: FileLocation) {
-            val fileJson = location.json
-
-            if (location.json.driveFileId != null) {
-                log("Skipping previously uploaded file with Drive id ${location.json.driveFileId}")
+            location.json.driveFileId?.let {
+                log("Skipping previously uploaded file with Drive id $it")
                 return
             }
 
@@ -29,7 +27,7 @@ object DriveUploadFiles {
             )
             location.path.apply {
                 deleteExisting()
-                createNewFile(fileJson.copy(driveFileId = driveId))
+                createNewFile(location.json.copy(driveFileId = driveId))
             }
             log("File saved on Google Drive with id $driveId")
         }
