@@ -4,7 +4,7 @@ import io.github.jvmusin.ProcessAllFiles.Location.Companion.titleWithId
 import java.nio.file.Path
 import kotlin.io.path.*
 
-abstract class ProcessAllFiles {
+abstract class ProcessAllFiles(private val processName: String? = null) {
     private val progresses = ArrayDeque<Progress>()
     private fun progress() = progresses.last()
     private val logger = getLogger()
@@ -28,7 +28,10 @@ abstract class ProcessAllFiles {
     fun run() {
         progresses.clear()
         progresses += Progress("")
+
+        processName?.let { log("Started $processName") }
         processFolder(FolderLocation(downloadedPath))
+        processName?.let { log("Finished $processName") }
     }
 
     open fun beforeVisitFolder(location: FolderLocation) {}
