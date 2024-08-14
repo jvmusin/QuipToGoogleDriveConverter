@@ -1,5 +1,6 @@
 package io.github.jvmusin
 
+import io.github.jvmusin.ProcessAllFiles.FileLocation
 import kenichia.quipapi.QuipMessage
 import kenichia.quipapi.QuipThread
 import org.jsoup.Jsoup
@@ -10,6 +11,12 @@ import java.time.format.FormatStyle
 import kotlin.io.path.deleteIfExists
 import kotlin.io.path.visitFileTree
 import kotlin.io.path.writeText
+
+/*
+If there is no `annotation` field, then it's a document comment, no threads here
+If there is an annotation without highlight_section_ids, then it's a comment to a highlighted text, threads are by id
+If there is an annotation with highlight_section_ids, then it's a thread, threads are by id
+ */
 
 object QuipDownloadComments {
     private val logger = getLogger()
@@ -30,9 +37,9 @@ object QuipDownloadComments {
                             null,
                             null,
                             null,
-                            QuipThread.SortedBy.NONE,
+                            QuipThread.SortedBy.ASC,
                             null
-                        ).reversedArray()
+                        )
                     }
                     if (recentMessages.isEmpty()) {
                         logger.info("${thread.id} -- No comments found")
@@ -41,10 +48,10 @@ object QuipDownloadComments {
                         val commentContext = commentThreads.mapValues { (_, comments) ->
                             val allSectionIds = comments.map { comment ->
                                 try {
-                                    comment.highlightSectionIds
-                                } catch (e: Exception) {
-                                    null
-                                }.orEmpty().toSet()
+                                    comment.highlightSectionIds.toSet()
+                                } catch (e: NullPointerException) { // highlightSectionIds is absent and getter fails
+                                    setOf(comment.annotationId) // this is a comment to just some text
+                                }
                             }
                             require(allSectionIds.distinct().size == 1) {
                                 "Found multiple sections related to comments"
@@ -52,7 +59,7 @@ object QuipDownloadComments {
                             val sections = allSectionIds.first()
                             if (sections.isEmpty()) {
                                 logger.warning("${thread.id} -- No sections found, probably documents chat")
-                                "CITATION UNAVAILABLE"
+                                "Document's chat"
                             } else {
                                 if (sections.size > 1) {
                                     logger.warning("${thread.id} -- More than 1 section?? Using the first one")
@@ -77,7 +84,7 @@ object QuipDownloadComments {
                             }.let(::appendLine)
                         }
 
-                        file.resolveSibling(ProcessAllFiles.FileLocation(file).commentsPath).apply {
+                        FileLocation(file).commentsPath.apply {
                             deleteIfExists()
                             writeText(commentsDoc)
                         }
