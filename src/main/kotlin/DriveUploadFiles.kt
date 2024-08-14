@@ -1,79 +1,51 @@
 package io.github.jvmusin
 
-import com.google.gson.JsonObject
-import java.nio.file.FileVisitResult
-import java.nio.file.Path
-import kotlin.io.path.*
+import kotlin.io.path.deleteExisting
 
 object DriveUploadFiles {
     @JvmStatic
     fun main(args: Array<String>) {
-        val client = DriveClientFactory.createClient()
-        val settings = Settings.read()
-        val quipFolder = client.getOrCreateFolder(name = settings.driveFolderName, parent = null)
-        visitDirectory(
-            downloadedPath,
-            State(
-                driveFolderId = quipFolder,
-                driveFolderNames = emptyList(),
-            ),
-            client
-        )
+        Visitor().start()
     }
 
-    private val logger = getLogger()
+    class Visitor : ProcessAllFiles() {
+        private val client = DriveClientFactory.createClient()
+        private val driveFolderIdStack = ArrayDeque<String>()
+        private fun currentDriveFolder() = driveFolderIdStack.lastOrNull()
 
-    private fun JsonObject.getTitle() = getAsJsonPrimitive("title").asString
-    private fun JsonObject.getId() = getAsJsonPrimitive("id").asString
-    private fun JsonObject.getTitleAndId() = "${getTitle()} (${getId()})"
+        override fun visitFile(location: FileLocation) {
+            val fileJson = location.json
 
-    data class State(
-        val driveFolderId: String,
-        val driveFolderNames: List<String>,
-    )
+            if (location.json.driveFileId != null) {
+                log("Skipping previously uploaded file with Drive id ${location.json.driveFileId}")
+                return
+            }
 
-    private fun visitDocumentJsonFile(file: Path, state: State, service: DriveClient) {
-        val fileJson = requireNotNull(file.readFileJson()) {
-            "Not a json file for a document: $file"
-        }
-        val location = ProcessAllFiles.FileLocation(file)
-        val parsedJson = fileJson.quip.getAsJsonObject("thread")
-        val fullFileName = (state.driveFolderNames + parsedJson.getTitleAndId()).joinToString(" > ")
-
-        if (location.json.driveFileId != null && !Settings.read().forceDriveReupload) {
-            logger.info("$fullFileName -- Skipping previously uploaded file with Drive id ${location.json.driveFileId}")
-            return
-        }
-
-        logger.info("$fullFileName -- Saving file on Drive")
-        val document = location.documentPath
-        val driveId =
-            service.createFile(parent = state.driveFolderId, name = parsedJson.getTitle(), sourceFile = document)
-        file.deleteExisting()
-        file.createNewFile(fileJson.copy(driveFileId = driveId))
-        logger.info("$fullFileName -- Saved file on Drive with id $driveId")
-        FileVisitResult.CONTINUE
-    }
-
-    private fun visitDirectory(directory: Path, state: State, service: DriveClient) {
-        val folderJson = directory.resolve("_folder.json").readText()
-        val folderJsonParsed = gson().fromJson(folderJson, FolderJson::class.java)
-        val folderQuipParsed = folderJsonParsed.quip.getAsJsonObject("folder")
-        val title = folderQuipParsed.getTitle()
-        val driveFolderId = service.getOrCreateFolder(title, state.driveFolderId)
-
-        val eligibleFiles = directory.listDirectoryEntries().filter {
-            it.isDirectory() || (it.extension == "json" && it.name != "_folder.json")
-        }
-        for ((i, child) in eligibleFiles.sortedByDescending { it.isDirectory() }.withIndex()) {
-            val titleForLogs = folderQuipParsed.getTitleAndId() + " (${i + 1}/${eligibleFiles.size})"
-            val newState = State(
-                driveFolderId,
-                state.driveFolderNames + titleForLogs,
+            log("Saving file on Google Drive")
+            val driveId = client.createFile(
+                parent = requireNotNull(currentDriveFolder()),
+                name = location.title,
+                sourceFile = location.documentPath
             )
-            if (child.isDirectory()) visitDirectory(child, newState, service)
-            else visitDocumentJsonFile(child, newState, service)
+            location.path.apply {
+                deleteExisting()
+                createNewFile(fileJson.copy(driveFileId = driveId))
+            }
+            log("File saved on Google Drive with id $driveId")
+        }
+
+        override fun beforeVisitFolder(location: FolderLocation) {
+            driveFolderIdStack.addLast(client.getOrCreateFolder(location.title, currentDriveFolder()))
+        }
+
+        override fun afterVisitFolder(location: FolderLocation) {
+            driveFolderIdStack.removeLast()
+        }
+
+        fun start() {
+            val quipFolder = client.getOrCreateFolder(name = Settings.read().driveFolderName, parent = null)
+            driveFolderIdStack.addLast(quipFolder)
+            run()
         }
     }
-
 }

@@ -7,7 +7,6 @@ data class Settings(
     val driveDomain: String,
     val driveFolderName: String,
     val includeAuthorName: Boolean,
-    val forceDriveReupload: Boolean
 ) {
     companion object {
         fun read(): Settings {

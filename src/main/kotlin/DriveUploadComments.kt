@@ -51,7 +51,7 @@ object DriveUploadComments {
         }
 
         val commentsFileId = location.json.driveCommentsFileId
-        if (commentsFileId != null && !Settings.read().forceDriveReupload) {
+        if (commentsFileId != null) {
             logger.info("$fullFileName -- Skipping previously uploaded comments file with Drive id $commentsFileId")
             return
         }

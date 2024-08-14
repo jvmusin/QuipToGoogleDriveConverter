@@ -12,7 +12,9 @@ abstract class ProcessAllFiles(private val processName: String? = null) {
     private fun processFolder(location: FolderLocation) {
         progresses.addLast(progress().named(location.titleWithId))
         beforeVisitFolder(location)
-        val entries = location.path.listDirectoryEntries().sortedBy { !it.isRegularFile() } // files then folders
+        val entries = location.path.listDirectoryEntries()
+            .sortedBy { it.name } // for consistency
+            .sortedBy { !it.isRegularFile() } // files then folders
         for (p in entries) {
             if (p.isDirectory()) processFolder(FolderLocation(p)) else if (p.isFileJson()) {
                 val fileLocation = FileLocation(p)
