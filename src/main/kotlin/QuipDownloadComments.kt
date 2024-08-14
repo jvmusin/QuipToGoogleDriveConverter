@@ -43,8 +43,9 @@ object QuipDownloadComments {
                         val allSectionIds = comments.map { comment ->
                             try {
                                 comment.highlightSectionIds.toSet()
-                            } catch (e: NullPointerException) { // highlightSectionIds is absent and getter fails
-                                setOf(comment.annotationId) // this is a comment to just some text
+                            } catch (e: NullPointerException) { // highlightSectionIds is absent, and getter throws NPE
+                                // this is a comment to just some text OR a document chat if null
+                                setOfNotNull(comment.annotationId)
                             }
                         }
                         require(allSectionIds.distinct().size == 1) {
@@ -54,9 +55,9 @@ object QuipDownloadComments {
                         if (sections.isEmpty()) {
                             "Document's chat"
                         } else {
-                            if (sections.size > 1) error("more than 1 section found")
-                            val section =
-                                sections.single() + if (sections.size == 1) "" else " \n AND ${sections.size - 1} SECTIONS"
+                            val section = requireNotNull(sections.singleOrNull()) {
+                                "More than 1 section found"
+                            }
                             page.getElementById(section)?.text()
                                 ?: "!!! This section was deleted from the document !!!"
                         }
@@ -91,6 +92,7 @@ object QuipDownloadComments {
     }
 
     private fun threadToString(context: String, comments: List<QuipMessage>) = buildString {
+        appendLine("Highlighted text:")
         appendAsComment(context)
         appendLine()
 
