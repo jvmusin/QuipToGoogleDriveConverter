@@ -19,95 +19,97 @@ object QuipDownloadComments {
     @JvmStatic
     fun main(args: Array<String>) {
         setupQuipClient()
-        object : ProcessAllFiles("downloading comments from Quip") {
-            override fun visitFile(location: FileLocation) {
-                val thread = location.json.quipThread()
-                val html = thread.html ?: withBackoff { QuipThread.getThread(thread.id).html }
-                val page = Jsoup.parse(html)
-                val recentMessages = withBackoff {
-                    QuipMessage.getRecentMessages(
-                        thread.id,
-                        100,
-                        null,
-                        null,
-                        null,
-                        QuipThread.SortedBy.ASC,
-                        null
-                    )
-                }
-                if (recentMessages.isEmpty()) {
-                    log("No comments found")
-                } else {
-                    val commentThreads = recentMessages.groupBy { it.annotationId }
-                    val commentContext = commentThreads.mapValues { (_, comments) ->
-                        val allSectionIds = comments.map { comment ->
-                            try {
-                                comment.highlightSectionIds.toSet()
-                            } catch (e: NullPointerException) { // highlightSectionIds is absent, and getter throws NPE
-                                // this is a comment to just some text OR a document chat if null
-                                setOfNotNull(comment.annotationId)
-                            }
-                        }
-                        require(allSectionIds.distinct().size == 1) {
-                            "Found multiple sections related to comments"
-                        }
-                        val sections = allSectionIds.first()
-                        if (sections.isEmpty()) {
-                            "Document's chat"
-                        } else {
-                            val section = requireNotNull(sections.singleOrNull()) {
-                                "More than 1 section found"
-                            }
-                            page.getElementById(section)?.text()
-                                ?: "!!! This section was deleted from the document !!!"
-                        }
-                    }
+        Visitor().run()
+    }
 
-                    val commentsDoc = buildString {
-                        appendLine("# ${thread.title} — comments")
-                        append("\n---\n\n")
-
-                        commentContext.keys.joinToString("\n---\n\n") { id ->
-                            threadToString(
-                                commentContext[id]!!,
-                                commentThreads[id]!!
-                            )
-                        }.let(::appendLine)
-                    }
-
-                    location.commentsPath.apply {
-                        deleteIfExists()
-                        writeText(commentsDoc)
-                    }
-                    log("Saved ${recentMessages.size} comments among ${commentThreads.keys.size} threads")
-                }
+    private class Visitor : ProcessAllFiles("Downloading comments from Quip") {
+        override fun visitFile(location: FileLocation) {
+            val thread = location.json.quipThread()
+            val html = thread.html ?: withBackoff { QuipThread.getThread(thread.id).html }
+            val page = Jsoup.parse(html)
+            val recentMessages = withBackoff {
+                QuipMessage.getRecentMessages(
+                    thread.id,
+                    100,
+                    null,
+                    null,
+                    null,
+                    QuipThread.SortedBy.ASC,
+                    null
+                )
             }
-        }.run()
-    }
-
-    private fun StringBuilder.appendAsComment(text: String) {
-        for (line in text.lines()) {
-            appendLine("> $line")
-        }
-    }
-
-    private fun threadToString(context: String, comments: List<QuipMessage>) = buildString {
-        appendLine("Highlighted text:")
-        appendAsComment(context)
-        appendLine()
-
-        var firstComment = true
-        for (comment in comments) {
-            if (!firstComment) {
-                appendLine()
+            if (recentMessages.isEmpty()) {
+                log("No comments found")
             } else {
-                firstComment = false
+                val commentThreads = recentMessages.groupBy { it.annotationId }
+                val commentContext = commentThreads.mapValues { (_, comments) ->
+                    val allSectionIds = comments.map { comment ->
+                        try {
+                            comment.highlightSectionIds.toSet()
+                        } catch (e: NullPointerException) { // highlightSectionIds is absent, and getter throws NPE
+                            // this is a comment to just some text OR a document chat if null
+                            setOfNotNull(comment.annotationId)
+                        }
+                    }
+                    require(allSectionIds.distinct().size == 1) {
+                        "Found multiple sections related to comments"
+                    }
+                    val sections = allSectionIds.first()
+                    if (sections.isEmpty()) {
+                        "Document's chat"
+                    } else {
+                        val section = requireNotNull(sections.singleOrNull()) {
+                            "More than 1 section found"
+                        }
+                        page.getElementById(section)?.text() ?: "!!! This section was deleted from the document !!!"
+
+                    }
+                }
+
+                val commentsDoc = buildString {
+                    appendLine("# ${thread.title} — comments")
+                    append("\n---\n\n")
+
+                    commentContext.keys.joinToString("\n---\n\n") { id ->
+                        threadToString(
+                            commentContext[id]!!,
+                            commentThreads[id]!!
+                        )
+                    }.let(::appendLine)
+                }
+
+                location.commentsPath.apply {
+                    deleteIfExists()
+                    writeText(commentsDoc)
+                }
+                log("Saved ${recentMessages.size} comments among ${commentThreads.keys.size} threads")
             }
-            val wroteAt = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM).format(
-                comment.createdUsec.atZone(ZoneOffset.UTC)
-            )
-            appendLine("### ${comment.authorName} wrote at $wroteAt")
-            appendAsComment(comment.text)
+        }
+
+        fun StringBuilder.appendAsComment(text: String) {
+            for (line in text.lines()) {
+                appendLine("> $line")
+            }
+        }
+
+        fun threadToString(context: String, comments: List<QuipMessage>) = buildString {
+            appendLine("Highlighted text:")
+            appendAsComment(context)
+            appendLine()
+
+            var firstComment = true
+            for (comment in comments) {
+                if (!firstComment) {
+                    appendLine()
+                } else {
+                    firstComment = false
+                }
+                val wroteAt = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM).format(
+                    comment.createdUsec.atZone(ZoneOffset.UTC)
+                )
+                appendLine("### ${comment.authorName} wrote at $wroteAt")
+                appendAsComment(comment.text)
+            }
         }
     }
 }
