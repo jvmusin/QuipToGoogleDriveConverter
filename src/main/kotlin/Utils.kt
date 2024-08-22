@@ -79,9 +79,8 @@ inline fun <reified T : Any> Path.getOrCreate(create: () -> T): T {
 
 data class FileJson(
     val quip: JsonObject,
-    val driveFileId: String? = null,
-    val driveCommentsFileId: String? = null,
-    val commentsDownloaded: String? = null,
+    var quipComments: List<QuipDownloadComments.CommentsThread>? = null,
+    var driveFileId: String? = null,
 ) {
     fun quipThread() = quip.toQuipThreadReflection()
 }
@@ -92,8 +91,9 @@ data class FolderJson(val quip: JsonObject, val driveFolderId: String? = null) {
 
 data class Progress(private val s: String) {
     fun named(name: String) = Progress("$s > $name")
-    fun withIndex(index: Int, total: Int) = Progress("$s ($index/$total)")
+    fun withIndex(index: Int, total: Int) = Progress("$s (${index + 1}/$total)")
     fun action(name: String) = "$s — $name"
+    fun withPrefixIndex(index: Int, total: Int) = Progress("${index + 1}/$total$s")
     override fun toString() = s
 }
 

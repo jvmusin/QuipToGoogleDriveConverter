@@ -23,7 +23,6 @@ class QuipUserRepository {
             .fromJson(Paths.get("quip_users_scim.json").readText(), JsonObject::class.java)
             .getAsJsonArray("Resources")
             .map { gson().fromJson(it, QuipUserResource::class.java) }
-            .filter { it.emails.isNotEmpty() }
             .associateBy { it.id }
         val extraUserIdToEmail = if (extraEmailsPath.exists()) {
             gson()
@@ -31,9 +30,13 @@ class QuipUserRepository {
                 .asJsonObject
                 .entrySet()
                 .map { it.key to it.value.asString }
-                .associate { (id, email) ->
-                    val name = QuipUserName("User $email ($id)")
-                    id to QuipUserResource(id, listOf(email), name)
+                .associate { (id, nameAndEmail) ->
+                    require(id !in userIdToEmail) { "Repeating id $id" }
+                    val parts = nameAndEmail.split(":")
+                    require(parts.size <= 2) { "Invalid name and email format for $id: $nameAndEmail" }
+                    val name = parts[0]
+                    val email = parts.getOrNull(1) ?: ""
+                    id to QuipUserResource(id, listOfNotNull(email), QuipUserName(name))
                 }
         } else {
             emptyMap()

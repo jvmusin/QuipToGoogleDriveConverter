@@ -3,11 +3,7 @@ package io.github.jvmusin
 import kenichia.quipapi.QuipMessage
 import kenichia.quipapi.QuipThread
 import org.jsoup.Jsoup
-import java.time.ZoneOffset
-import java.time.format.DateTimeFormatter
-import java.time.format.FormatStyle
-import kotlin.io.path.deleteIfExists
-import kotlin.io.path.writeText
+import java.time.Instant
 
 /*
 If there is no `annotation` field, then it's a document comment, no threads here
@@ -22,11 +18,32 @@ object QuipDownloadComments {
         Visitor().run()
     }
 
+    data class SingleComment(val author: String?, val time: Instant?, val text: String)
+    data class CommentsThread(val section: CommentSection, val comments: List<SingleComment>)
+
+    data class CommentSection(val id: String, val text: String?) {
+        companion object {
+            val DOCUMENT_CHAT = CommentSection("DOCUMENT_CHAT", null)
+            val DELETED_SECTION = CommentSection("DELETED_SECTION", null)
+        }
+    }
+
     private class Visitor : ProcessAllFiles("Downloading comments from Quip") {
         override fun visitFile(location: FileLocation) {
+            if (location.type != QuipFileType.Docx) {
+                log("Comments for non-docx files are not supported yet, saving empty comments")
+                location.updateJson { quipComments = emptyList() }
+                return
+            }
+            if (location.json.quipComments != null) {
+                log("Skipping already downloaded comments")
+                return
+            }
+
             val thread = location.json.quipThread()
-            val html = thread.html ?: withBackoff { QuipThread.getThread(thread.id).html }
+            val html = thread.html
             val page = Jsoup.parse(html)
+            log("Requesting comments")
             val recentMessages = withBackoff {
                 QuipMessage.getRecentMessages(
                     thread.id,
@@ -40,9 +57,11 @@ object QuipDownloadComments {
             }
             if (recentMessages.isEmpty()) {
                 log("No comments found")
+                location.updateJson { quipComments = emptyList() }
             } else {
-                val commentThreads = recentMessages.groupBy { it.annotationId }
-                val commentContext = commentThreads.mapValues { (_, comments) ->
+                log("Saving comments")
+                val commentsByThreadId = recentMessages.groupBy { it.annotationId }
+                val contextByThreadId = commentsByThreadId.mapValues { (_, comments) ->
                     val allSectionIds = comments.map { comment ->
                         try {
                             comment.highlightSectionIds.toSet()
@@ -56,59 +75,27 @@ object QuipDownloadComments {
                     }
                     val sections = allSectionIds.first()
                     if (sections.isEmpty()) {
-                        "Document's chat"
+                        CommentSection.DOCUMENT_CHAT
                     } else {
-                        val section = requireNotNull(sections.singleOrNull()) {
+                        val sectionId = requireNotNull(sections.singleOrNull()) {
                             "More than 1 section found"
                         }
-                        page.getElementById(section)?.text() ?: "!!! This section was deleted from the document !!!"
-
+                        val element = page.getElementById(sectionId)
+                        if (element != null) CommentSection(sectionId, element.text())
+                        else CommentSection.DELETED_SECTION
                     }
                 }
 
-                val commentsDoc = buildString {
-                    appendLine("# ${thread.title} — comments")
-                    append("\n---\n\n")
-
-                    commentContext.keys.joinToString("\n---\n\n") { id ->
-                        threadToString(
-                            commentContext[id]!!,
-                            commentThreads[id]!!
-                        )
-                    }.let(::appendLine)
+                val comments = commentsByThreadId.keys.map { id ->
+                    val comments = commentsByThreadId[id]!!
+                    val context = contextByThreadId[id]!!
+                    CommentsThread(context, comments.map {
+                        SingleComment(it.authorName, it.createdUsec, it.text)
+                    })
                 }
 
-                location.commentsPath.apply {
-                    deleteIfExists()
-                    writeText(commentsDoc)
-                }
-                log("Saved ${recentMessages.size} comments among ${commentThreads.keys.size} threads")
-            }
-        }
-
-        fun StringBuilder.appendAsComment(text: String) {
-            for (line in text.lines()) {
-                appendLine("> $line")
-            }
-        }
-
-        fun threadToString(context: String, comments: List<QuipMessage>) = buildString {
-            appendLine("Highlighted text:")
-            appendAsComment(context)
-            appendLine()
-
-            var firstComment = true
-            for (comment in comments) {
-                if (!firstComment) {
-                    appendLine()
-                } else {
-                    firstComment = false
-                }
-                val wroteAt = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM).format(
-                    comment.createdUsec.atZone(ZoneOffset.UTC)
-                )
-                appendLine("### ${comment.authorName} wrote at $wroteAt")
-                appendAsComment(comment.text)
+                location.updateJson { quipComments = comments }
+                log("Comments saved")
             }
         }
     }

@@ -26,10 +26,6 @@ class DriveClient(private val service: Drive) {
         return withBackoff { service.files().create(content).setFields("id").execute().id }
     }
 
-    fun listDrives(): List<com.google.api.services.drive.model.Drive> = withBackoff {
-        service.drives().list().setPageSize(100).execute().drives
-    }
-
     private fun Path.mimeType() = when (extension) {
         "pdf" -> "application/pdf"
         "xlsx" -> "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"

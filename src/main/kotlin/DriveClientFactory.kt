@@ -45,10 +45,14 @@ object DriveClientFactory {
     }
 
     fun createClient(): DriveClient {
+        return DriveClient(createRawClient())
+    }
+
+    fun createRawClient(): Drive {
         val httpTransport = GoogleNetHttpTransport.newTrustedTransport()
         val client = Drive.Builder(httpTransport, JSON_FACTORY, getCredentials(httpTransport))
             .setApplicationName(APPLICATION_NAME)
             .build()
-        return DriveClient(client)
+        return client
     }
 }
