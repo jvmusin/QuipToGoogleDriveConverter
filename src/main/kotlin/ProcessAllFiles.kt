@@ -85,18 +85,25 @@ abstract class ProcessAllFiles(private val processName: String? = null) {
         val type: QuipFileType = QuipFileType.fromQuipThread(json.quipThread())
         val documentPath: Path = path.resolveSibling("$id.${type.extension}")
 
-        @Deprecated("Use withCommentsDocumentPath")
-        val updatedDocumentPath: Path =
-            documentPath.resolveSibling(documentPath.name.replace(".", "_updated."))
-        val withCommentsDocumentPath =
-            documentPath.resolveSibling(documentPath.name.replace(".", "_with_comments."))
-        val withCommentsAndAuthorDocumentPath =
-            withCommentsDocumentPath.resolveSibling(documentPath.name.replace(".", "_with_comments_and_author."))
-        val withCommentsAndAuthorAndLinksDocumentPath =
+        val withCommentsDocumentPath: Path =
+            documentPath.resolveSibling(
+                documentPath.name.replace(
+                    oldValue = ".",
+                    newValue = "_with_comments."
+                )
+            )
+        val withCommentsAndAuthorDocumentPath: Path =
             withCommentsDocumentPath.resolveSibling(
                 documentPath.name.replace(
-                    ".",
-                    "_with_comments_and_author_and_links."
+                    oldValue = ".",
+                    newValue = "_with_comments_and_author."
+                )
+            )
+        val withCommentsAndAuthorAndLinksDocumentPath: Path =
+            withCommentsDocumentPath.resolveSibling(
+                documentPath.name.replace(
+                    oldValue = ".",
+                    newValue = "_with_comments_and_author_and_links."
                 )
             )
 
