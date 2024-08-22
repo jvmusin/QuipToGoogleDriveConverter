@@ -38,7 +38,7 @@ dependencies {
 
     implementation("com.google.api-client:google-api-client:2.6.0")
     implementation("com.google.oauth-client:google-oauth-client-jetty:1.36.0")
-    implementation("com.google.apis:google-api-services-drive:v3-rev20240730-2.0.0")
+    implementation("com.google.apis:google-api-services-drive:v3-rev20240809-2.0.0")
     implementation("org.jsoup:jsoup:1.18.1") // To extract comments text from HTML
 
     // Docx4j for altering docx files like adding comments, for example
