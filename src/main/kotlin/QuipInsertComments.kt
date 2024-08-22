@@ -275,7 +275,6 @@ object QuipInsertComments {
             else return "" // found a node
             if (cut == totalTake) return buffer.toString()
         }
-        // TODO: check if takeCount == 0 maybe here?
         error("Not found such string") // can also happen if an empty text is commented in the end of a file, idc
     }
 
