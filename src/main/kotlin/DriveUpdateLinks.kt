@@ -4,6 +4,7 @@ import io.github.jvmusin.ProcessAllFiles.FileLocation
 import kenichia.quipapi.QuipThread
 import java.io.ByteArrayOutputStream
 import java.nio.file.Path
+import java.util.zip.CRC32
 import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
 import java.util.zip.ZipOutputStream
@@ -45,9 +46,11 @@ object DriveUpdateLinks {
                         val e = fileZIS.nextEntry ?: break
                         val bytes = fileZIS.readBytes()
 
-                        // TODO: these entries need to have crc32 and size/compressedSize
                         val modifier = ReplaceLinksModifier(linkIdToDriveInfo)
                         val (newEntry, newContent) = modifier.process(e, bytes)
+                        newEntry.size = newContent.size.toLong()
+                        newEntry.compressedSize = newContent.size.toLong()
+                        newEntry.crc = CRC32().also { crc -> crc.update(newContent) }.value
                         outFileZOS.putNextEntry(newEntry)
                         outFileZOS.write(newContent)
                     }
