@@ -88,16 +88,6 @@ object DriveUpdateLinks {
             linkId to DriveFileInfo(driveId!!, threadType) // TODO: Check file existence instead of !!
         }
 
-        if (Settings.read().includeAuthorName) {
-            val userRepository = QuipUserRepository()
-            for (fileJson in fileJsons.values) {
-                val authorId = fileJson.json.quipThread().authorId
-                if (userRepository.getUser(authorId) == null) {
-                    error("Not found user with id $authorId")
-                }
-            }
-        }
-
         val totalCount = fileJsons.size
         for ((i, entry) in fileJsons.entries.withIndex()) {
             val (_, fileJson) = entry

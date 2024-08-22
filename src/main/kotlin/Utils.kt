@@ -30,7 +30,7 @@ fun Any.setupQuipClient(debug: Boolean = false) {
     val logger = getLogger()
     logger.info("Initializing Quip Client")
     QuipClient.enableDebug(debug)
-    QuipClient.setAccessToken(javaClass.getResource("/quip_access_token.txt")!!.readText())
+    QuipClient.setAccessToken(Settings.readQuipAccessToken())
     logger.info("Quip Client successfully initialized")
 }
 
