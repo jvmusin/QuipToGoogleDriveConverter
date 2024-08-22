@@ -17,14 +17,10 @@ fun registerRunTask(mainClass: String) = tasks.register(mainClass.decapitalizeAs
     dependsOn(ApplicationPlugin.TASK_RUN_NAME)
 }
 
-registerRunTask("QuipDownloadFiles")
-registerRunTask("QuipListPrivateFiles")
-registerRunTask("QuipListDocumentAuthors")
-registerRunTask("QuipDownloadComments")
+registerRunTask("QuipDownloadAll")
 registerRunTask("DriveUploadFiles")
 registerRunTask("DriveUpdateLinks")
 registerRunTask("DriveResetInfo")
-registerRunTask("DriveUploadComments")
 
 group = "io.github.jvmusin"
 version = "1.0-SNAPSHOT"

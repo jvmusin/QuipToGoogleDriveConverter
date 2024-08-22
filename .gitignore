@@ -44,9 +44,7 @@ bin/
 .DS_Store
 
 ### Custom ###
-downloaded/
-downloaded_users/
-downloaded_private_files/
+downloaded
 downloaded_structure
 downloaded_structure_with_files
 downloaded_structure_with_files_root_only
@@ -54,4 +52,4 @@ quip_emails_extra.json
 quip_users_scim.json
 src/main/resources/credentials.json
 src/main/resources/quip_access_token.txt
-tokens/
+tokens
