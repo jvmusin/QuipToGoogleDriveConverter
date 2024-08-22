@@ -1,7 +1,5 @@
 package io.github.jvmusin
 
-import kotlin.io.path.deleteExisting
-
 object DriveUploadFiles {
     @JvmStatic
     fun main(args: Array<String>) {
@@ -25,10 +23,7 @@ object DriveUploadFiles {
                 name = location.title,
                 sourceFile = location.documentPath
             )
-            location.path.apply {
-                deleteExisting()
-                createNewFile(location.json.copy(driveFileId = driveId))
-            }
+            location.updateJson { driveFileId = driveId }
             log("File saved on Google Drive with id $driveId")
         }
 

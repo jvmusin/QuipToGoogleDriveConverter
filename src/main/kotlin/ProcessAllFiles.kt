@@ -109,8 +109,7 @@ abstract class ProcessAllFiles(private val processName: String? = null) {
 
         fun updateJson(block: FileJson.() -> Unit) {
             val newJson = json.copy().also(block)
-            path.deleteExisting()
-            path.createNewFile(newJson)
+            path.writeJson(newJson)
         }
     }
 

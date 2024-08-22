@@ -9,7 +9,6 @@ import kenichia.quipapi.QuipThread
 import kenichia.quipapi.QuipUser
 import java.nio.file.Path
 import java.nio.file.Paths
-import java.nio.file.StandardOpenOption
 import java.util.logging.Logger
 import kotlin.io.path.*
 
@@ -35,8 +34,7 @@ fun Any.setupQuipClient(debug: Boolean = false) {
     logger.info("Quip Client successfully initialized")
 }
 
-private fun Path.createNewFile(content: String) = writeText(content, Charsets.UTF_8, StandardOpenOption.CREATE_NEW)
-fun Path.createNewFile(content: Any) = createNewFile(gson().toJson(content))
+fun Path.writeJson(content: Any) = writeText(gson().toJson(content), Charsets.UTF_8)
 
 fun Path.isJson() = extension == "json"
 fun Path.isFileJson() = isJson() && !isFolderJson()
@@ -72,7 +70,7 @@ fun JsonObject.toQuipFolderReflection(): QuipFolder {
 inline fun <reified T : Any> Path.getOrCreate(create: () -> T): T {
     if (!exists()) {
         createParentDirectories()
-        createNewFile(create())
+        writeJson(create())
     }
     return gson().fromJson(readText(), T::class.java)
 }

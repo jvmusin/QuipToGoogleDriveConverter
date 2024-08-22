@@ -9,7 +9,7 @@ object DriveResetInfo {
                     log("No info about this file on drive, skipping")
                 } else {
                     location.updateJson { driveFileId = null }
-                    log("Reset info about this file (had id ${location.driveFileId})")
+                    log("Reset info about this file (had id ${location.json.driveFileId})")
                 }
             }
         }.run()

@@ -50,6 +50,6 @@ downloaded_structure_with_files
 downloaded_structure_with_files_root_only
 quip_emails_extra.json
 quip_users_scim.json
-src/main/resources/credentials.json
-src/main/resources/quip_access_token.txt
+credentials.json
+quip_access_token.txt
 tokens

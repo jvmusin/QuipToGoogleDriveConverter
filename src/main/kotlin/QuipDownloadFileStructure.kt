@@ -31,7 +31,7 @@ object QuipDownloadFileStructure {
 
         logger.info(unnamedProgress.action("Downloading file info"))
         val file = withBackoff { QuipThread.getThread(id) }
-        jsonPath.createNewFile(file.toJson())
+        jsonPath.writeJson(file.toJson())
         logger.info(progress.named("${file.title} (${file.id})").action("Downloaded file info"))
     }
 
@@ -67,7 +67,7 @@ object QuipDownloadFileStructure {
             .forEachIndexed { index, child ->
                 process(child, path.resolve(child.id), namedProgress.withIndex(index + 1, children.size))
             }
-        jsonPath.createNewFile(folder.toJson())
+        jsonPath.writeJson(folder.toJson())
         logger.info(namedProgress.action("Downloaded folder structure"))
     }
 

@@ -119,7 +119,7 @@ object QuipListPrivateFiles {
             FieldRequest("Title") { getQuipThread().title },
             FieldRequest("Path") { path() },
             FieldRequest("Author") { author().toString() },
-            FieldRequest("Owners") { ownersIds().map(QuipUserInfo::getById).joinToString(", ") },
+            FieldRequest("Owners") { ownersIds().map(QuipUserInfo::getById).joinToString(", ") }, // TODO: Use scim
         )
 
         val privateFilesLog = Paths.get("private_files.txt")

@@ -1,5 +1,8 @@
 package io.github.jvmusin
 
+import java.nio.file.Paths
+import kotlin.io.path.readText
+
 data class Settings(
     val driveId: String,
     val quipFolderId: String,
@@ -9,15 +12,7 @@ data class Settings(
     val includeAuthorName: Boolean,
 ) {
     companion object {
-        fun read(): Settings {
-            val stream = Settings::class.java.getResourceAsStream("/settings.jsonc")
-            requireNotNull(stream) {
-                "Settings file not found (settings.jsonc)"
-            }
-            val settingsText = stream.use { it.readBytes().decodeToString() }
-            return gson().fromJson(settingsText, Settings::class.java)
-        }
-
-        fun readQuipAccessToken() = Settings::class.java.getResource("/quip_access_token.txt")!!.readText()
+        fun read(): Settings = gson().fromJson(Paths.get("settings.jsonc").readText(), Settings::class.java)
+        fun readQuipAccessToken(): String = Paths.get("quip_access_token.txt").readText()
     }
 }
