@@ -96,9 +96,10 @@ object QuipInsertComments {
         }
     }
 
-    fun ProcessAllFiles.insertComments(
+    fun ProcessAllFiles.insertDocxComments(
         fileLocation: ProcessAllFiles.FileLocation
     ) {
+        require(fileLocation.type == QuipFileType.Docx)
         val threads = requireNotNull(fileLocation.json.quipComments) {
             "Comments not downloaded"
         }
@@ -123,14 +124,12 @@ object QuipInsertComments {
                         )
                         val commentIds =
                             createThread(commentsPart, withFirstMessage, commentId).also { commentId += it.size }
-                        val titleP = findParagraphs(docx).first()
+                        val titleP = findRightParentAndNode(findTextNodes(docx).first().value).first
                         addCommentBoundsAround(
                             titleP.content.first() as Child,
                             titleP.content.last() as Child,
                             commentIds
                         )
-//                        titleP.content.add(extraNode()) // To not clash with any existing comments
-//                        addCommentBoundsToTheEndWithExtraNodeAfter(titleP, commentIds)
                     }
                 }
             }
@@ -149,8 +148,6 @@ object QuipInsertComments {
                     )
                     val commentIds =
                         createThread(commentsPart, withFirstMessage, commentId).also { commentId += it.size }
-                    val deletedCommentsP = factory.createP()
-                    docx.mainDocumentPart.content.add(deletedCommentsP)
                     val lastP = findParagraphs(docx).last()
                     val extraNode = extraNode()
                     lastP.content.add(extraNode)
@@ -169,7 +166,7 @@ object QuipInsertComments {
 
             val commentIds = createThread(commentsPart, thread, commentId).also { commentId += it.size }
 
-            val sectionId = thread.section.id
+            val sectionId = thread.section.htmlId
             val sectionText = thread.section.text!!
 
             val allTextBeforeTagHtml = findAllTextBeforeTagWithId(sectionId, html).joinToString("")
@@ -185,10 +182,10 @@ object QuipInsertComments {
             }
 
             fun validate() {
-                val allTextDocx = findAllText(docx).joinToString("")
+                val allTextDocx = findTextNodes(docx).joinToString("") { it.value.value }
                 val commentContentDocx = cutFirstNonSpaceCharacters(allTextDocx, charactersToSkip, charactersToTake)
-                if (commentContentDocx.noSpace() != sectionText.noSpace()) {
-                    error("Not exact match")
+                require(commentContentDocx.noSpace() == sectionText.noSpace()) {
+                    "Not exact match"
                 }
             }
             validate()
@@ -209,16 +206,11 @@ object QuipInsertComments {
         return texts
     }
 
-    private fun findAllText(doc: WordprocessingMLPackage): List<String> {
-        val nodes = doc.mainDocumentPart.getJAXBNodesViaXPath("//w:t", false)
-        return nodes.map { (it as JAXBElement<Text>).value.value } // TODO: Report bug to YT
-    }
-
     private fun findFirstNode(doc: WordprocessingMLPackage, skipCount: Int): Text {
         val elements = doc.mainDocumentPart.getJAXBNodesViaXPath(
             "//w:t",
             false
-        ) as List<JAXBElement<Text>> // TODO: Report bug to YT
+        ) as List<JAXBElement<Text>> // TODO: Report bug to YT, then inline findTextNodes()
         var cut = 0
         for (item in elements) {
             val nonSpaceCharacters = item.value.value.count { !it.isWhitespace() }
@@ -236,11 +228,19 @@ object QuipInsertComments {
                 throw NotImplementedError("Tag cutting not supported")
             }
         }
+        if (cut == skipCount) {
+            // comment at the end of a doc on an empty text, will still fail if no text on a page
+            return elements.last().value
+        }
         error("not found")
     }
 
+    private fun findTextNodes(doc: WordprocessingMLPackage): List<JAXBElement<Text>> {
+        return doc.mainDocumentPart.getJAXBNodesViaXPath("//w:t", false) as List<JAXBElement<Text>>
+    }
+
     private fun findLastNode(doc: WordprocessingMLPackage, takeCount: Int): Text {
-        val elements = doc.mainDocumentPart.getJAXBNodesViaXPath("//w:t", false) as List<JAXBElement<Text>>
+        val elements = findTextNodes(doc)
         var cut = 0
         for (item in elements) {
             val nonSpaceCharacters = item.value.value.count { !it.isWhitespace() }
@@ -275,7 +275,8 @@ object QuipInsertComments {
             else return "" // found a node
             if (cut == totalTake) return buffer.toString()
         }
-        error("Not found such string") // can also happen if an empty text is commented in the end of a file, idc
+        if (cut == skipCount && takeCount == 0) return "" // when skipping the whole text
+        error("Not found such string")
     }
 
     private fun createComment(
@@ -310,15 +311,25 @@ object QuipInsertComments {
     fun main(args: Array<String>) {
         object : ProcessAllFiles("Inserting comments into documents") {
             override fun visitFile(location: FileLocation) {
-                if (location.type == QuipFileType.Docx) {
-                    log("Inserting comments")
-                    insertComments(location)
-                    log("Comments inserted")
-                } else {
-                    log("Skipping because file type is not ${QuipFileType.Docx} but ${location.type}, saving same file")
-                    location.withCommentsDocumentPath.writeBytes(
-                        location.documentPath.readBytes()
-                    )
+                when (location.type) {
+                    QuipFileType.Docx -> {
+                        log("Inserting comments into docx")
+                        insertDocxComments(location)
+                        log("Comments inserted")
+                    }
+
+                    QuipFileType.Spreadsheet -> {
+                        log("Inserting comments into spreadsheet")
+                        QuipInsertCommentsSpreadsheets.insertComments(location)
+                        log("Comments inserted")
+                    }
+
+                    else -> {
+                        log("Skipping because file type is not ${QuipFileType.Docx} or ${QuipFileType.Spreadsheet} but ${location.type}, saving same file")
+                        location.withCommentsDocumentPath.writeBytes(
+                            location.documentPath.readBytes()
+                        )
+                    }
                 }
             }
         }.run()

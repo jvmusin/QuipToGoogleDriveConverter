@@ -21,7 +21,7 @@ object QuipDownloadComments {
     data class SingleComment(val author: String?, val time: Instant?, val text: String)
     data class CommentsThread(val section: CommentSection, val comments: List<SingleComment>)
 
-    data class CommentSection(val id: String, val text: String?) {
+    data class CommentSection(val htmlId: String, val text: String?) {
         companion object {
             val DOCUMENT_CHAT = CommentSection("DOCUMENT_CHAT", null)
             val DELETED_SECTION = CommentSection("DELETED_SECTION", null)
@@ -30,11 +30,6 @@ object QuipDownloadComments {
 
     private class Visitor : ProcessAllFiles("Downloading comments from Quip") {
         override fun visitFile(location: FileLocation) {
-            if (location.type != QuipFileType.Docx) {
-                log("Comments for non-docx files are not supported yet, saving empty comments")
-                location.updateJson { quipComments = emptyList() }
-                return
-            }
             if (location.json.quipComments != null) {
                 log("Skipping already downloaded comments")
                 return
@@ -54,6 +49,9 @@ object QuipDownloadComments {
                     QuipThread.SortedBy.ASC,
                     null
                 )
+            }
+            require(recentMessages.size < 100) {
+                "Too many comments"
             }
             if (recentMessages.isEmpty()) {
                 log("No comments found")
@@ -79,7 +77,7 @@ object QuipDownloadComments {
                     } else {
                         val sectionId = requireNotNull(sections.singleOrNull()) {
                             "More than 1 section found"
-                        }
+                        }.replace(';', '_') // for xlsx
                         val element = page.getElementById(sectionId)
                         if (element != null) CommentSection(sectionId, element.text())
                         else CommentSection.DELETED_SECTION
