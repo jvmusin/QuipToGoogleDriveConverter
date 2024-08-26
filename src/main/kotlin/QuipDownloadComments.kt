@@ -65,9 +65,6 @@ object QuipDownloadComments {
             val page = Jsoup.parse(html)
             log("Requesting comments")
             val recentMessages = downloadAllComments(thread.id)
-            require(recentMessages.size < 100) {
-                "Too many comments"
-            }
             if (recentMessages.isEmpty()) {
                 log("No comments found")
                 location.updateJson { quipComments = emptyList() }
