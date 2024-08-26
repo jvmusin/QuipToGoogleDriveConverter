@@ -21,7 +21,7 @@ object DriveUploadFiles {
             val driveId = client.createFile(
                 parent = requireNotNull(currentDriveFolder()),
                 name = location.title,
-                sourceFile = location.documentPath
+                sourceFile = location.withCommentsAndAuthorDocumentPath
             )
             location.updateJson { driveFileId = driveId }
             log("File saved on Google Drive with id $driveId")
