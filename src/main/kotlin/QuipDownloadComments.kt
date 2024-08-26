@@ -69,7 +69,7 @@ object QuipDownloadComments {
                 log("No comments found")
                 location.updateJson { quipComments = emptyList() }
             } else {
-                log("Saving comments")
+                log("Saving ${recentMessages.size} comments")
                 val commentsByThreadId = recentMessages.groupBy { it.annotationId }
                 val contextByThreadId = commentsByThreadId.mapValues { (_, comments) ->
                     val allSectionIds = comments.map { comment ->
