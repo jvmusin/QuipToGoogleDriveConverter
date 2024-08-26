@@ -20,7 +20,7 @@ import kotlin.io.path.reader
 object DriveClientFactory {
     private const val APPLICATION_NAME: String = "Quip to Google Drive Migration"
     private const val TOKENS_DIRECTORY_PATH: String = "tokens"
-    private const val CREDENTIALS_FILE_PATH: String = "/credentials.json"
+    private const val CREDENTIALS_FILE_PATH: String = "credentials.json"
     private val JSON_FACTORY: JsonFactory = GsonFactory.getDefaultInstance()
     private val SCOPES: List<String> = listOf(DriveScopes.DRIVE)
 
