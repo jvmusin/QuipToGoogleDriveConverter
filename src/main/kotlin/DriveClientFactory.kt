@@ -13,9 +13,9 @@ import com.google.api.client.util.store.FileDataStoreFactory
 import com.google.api.services.drive.Drive
 import com.google.api.services.drive.DriveScopes
 import java.io.File
-import java.io.FileNotFoundException
-import java.io.InputStream
-import java.io.InputStreamReader
+import java.nio.file.Paths
+import kotlin.io.path.exists
+import kotlin.io.path.reader
 
 object DriveClientFactory {
     private const val APPLICATION_NAME: String = "Quip to Google Drive Migration"
@@ -26,10 +26,12 @@ object DriveClientFactory {
 
     private fun getCredentials(httpTransport: NetHttpTransport?): Credential {
         // Load client secrets.
-        val `in`: InputStream = javaClass.getResourceAsStream(CREDENTIALS_FILE_PATH)
-            ?: throw FileNotFoundException("Resource not found: $CREDENTIALS_FILE_PATH")
+        val credentialsFile = Paths.get(CREDENTIALS_FILE_PATH)
+        require(credentialsFile.exists()) {
+            "Google Drive Credentials file does not exist at $credentialsFile"
+        }
         val clientSecrets =
-            GoogleClientSecrets.load(JSON_FACTORY, InputStreamReader(`in`))
+            GoogleClientSecrets.load(JSON_FACTORY, credentialsFile.reader())
 
         // Build flow and trigger user authorization request.
         val flow = GoogleAuthorizationCodeFlow.Builder(
@@ -48,7 +50,7 @@ object DriveClientFactory {
         return DriveClient(createRawClient())
     }
 
-    fun createRawClient(): Drive {
+    private fun createRawClient(): Drive {
         val httpTransport = GoogleNetHttpTransport.newTrustedTransport()
         val client = Drive.Builder(httpTransport, JSON_FACTORY, getCredentials(httpTransport))
             .setApplicationName(APPLICATION_NAME)
