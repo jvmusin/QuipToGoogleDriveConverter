@@ -4,7 +4,6 @@ import io.github.jvmusin.ProcessAllFiles.FileLocation
 import kenichia.quipapi.QuipThread
 import java.io.ByteArrayOutputStream
 import java.nio.file.Path
-import java.util.zip.CRC32
 import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
 import java.util.zip.ZipOutputStream
@@ -39,6 +38,7 @@ object DriveUpdateLinks {
         if (file.extension != "docx" && file.extension != "xlsx") return null
 
         val os = ByteArrayOutputStream()
+        var anyLinksFound = false
         file.inputStream().use { fileIS ->
             ZipInputStream(fileIS).use { fileZIS ->
                 ZipOutputStream(os).use { outFileZOS ->
@@ -47,10 +47,10 @@ object DriveUpdateLinks {
                         val bytes = fileZIS.readBytes()
 
                         val modifier = ReplaceLinksModifier(linkIdToDriveInfo)
-                        val (newEntry, newContent) = modifier.process(e, bytes)
-                        newEntry.size = newContent.size.toLong()
-                        newEntry.compressedSize = newContent.size.toLong()
-                        newEntry.crc = CRC32().also { crc -> crc.update(newContent) }.value
+                        val (newEntry, newContent) =
+                            if (e.name.endsWith(".rels")) modifier.process(e, bytes)
+                            else e to bytes
+                        if (!bytes.contentEquals(newContent)) anyLinksFound = true
                         outFileZOS.putNextEntry(newEntry)
                         outFileZOS.write(newContent)
                     }
@@ -61,6 +61,7 @@ object DriveUpdateLinks {
         val destination = FileLocation(file.resolveSibling(file.nameWithoutExtension + ".json"))
             .withCommentsAndAuthorAndLinksDocumentPath
         destination.writeBytes(os.toByteArray())
+        if (!anyLinksFound) return null
         return destination to ReplaceLinksModifier(linkIdToDriveInfo).updates()
     }
 
