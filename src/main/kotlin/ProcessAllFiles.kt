@@ -16,18 +16,28 @@ abstract class ProcessAllFiles(private val processName: String? = null) {
         progresses.addLast(progress().named(location.titleWithId).withIndex(index, total))
         beforeVisitFolder(location)
         val entries = location.path.listDirectoryEntries()
-            .filter { it.isDirectory() || it.isFileJson() }
-            .sortedBy { it.name } // for consistency
-            .sortedBy { !it.isRegularFile() } // files then folders
+            .mapNotNull {
+                when {
+                    it.isFileJson() -> FileLocation(it)
+                    it.isDirectory() -> FolderLocation(it)
+                    else -> null
+                }
+            }
+            .sortedBy { it.title } // for better order on Google Drive
+            .sortedBy { it is FolderLocation } // files then folders
         for ((i, p) in entries.withIndex()) {
-            if (p.isDirectory()) processFolder(FolderLocation(p), i, entries.size) else if (p.isFileJson()) {
-                val fileLocation = FileLocation(p)
-                progresses.addLast(
-                    progress().named(fileLocation.titleWithId).withIndex(i, entries.size)
-                        .withPrefixIndex(currentFileIndex++, totalFilesCount)
-                )
-                visitFile(fileLocation)
-                progresses.removeLast()
+            when (p) {
+                is FolderLocation -> processFolder(p, i, entries.size)
+                is FileLocation -> {
+                    progresses.addLast(
+                        progress().named(p.titleWithId).withIndex(i, entries.size)
+                            .withPrefixIndex(currentFileIndex++, totalFilesCount)
+                    )
+                    visitFile(p)
+                    progresses.removeLast()
+                }
+
+                else -> error("not possible: not file and not folder")
             }
         }
         afterVisitFolder(location)
