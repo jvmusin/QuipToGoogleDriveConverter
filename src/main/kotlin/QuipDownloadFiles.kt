@@ -1,6 +1,5 @@
-import io.github.jvmusin.ProcessAllFiles
-import io.github.jvmusin.setupQuipClient
-import io.github.jvmusin.withBackoff
+package io.github.jvmusin
+
 import kotlin.io.path.exists
 import kotlin.io.path.writeBytes
 

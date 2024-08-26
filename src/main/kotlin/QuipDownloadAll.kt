@@ -1,5 +1,4 @@
-import io.github.jvmusin.QuipDownloadComments
-import io.github.jvmusin.QuipDownloadFileStructure
+package io.github.jvmusin
 
 object QuipDownloadAll {
     @JvmStatic

@@ -4,6 +4,7 @@ import kenichia.quipapi.QuipMessage
 import kenichia.quipapi.QuipThread
 import org.jsoup.Jsoup
 import java.time.Instant
+import java.util.*
 
 /*
 If there is no `annotation` field, then it's a document comment, no threads here
@@ -29,6 +30,30 @@ object QuipDownloadComments {
     }
 
     private class Visitor : ProcessAllFiles("Downloading comments from Quip") {
+        private fun downloadAllComments(threadId: String): List<QuipMessage> {
+            val packSize = 100
+            val allMessages = TreeSet<QuipMessage>(compareBy { it.id })
+            while (true) {
+                val newMessages = withBackoff {
+                    QuipMessage.getRecentMessages(
+                        threadId,
+                        packSize,
+                        allMessages.minOfOrNull { it.createdUsec },  // Use the same minCreatedAt
+                        // to not miss messages with the same created date.
+                        // Duplicates are possible,
+                        // so use TreeSet
+                        // to avoid them.
+                        null,
+                        null,
+                        QuipThread.SortedBy.DESC, // for pagination
+                        null
+                    )
+                }
+                if (!allMessages.addAll(newMessages)) break
+            }
+            return allMessages.sortedBy { it.createdUsec }
+        }
+
         override fun visitFile(location: FileLocation) {
             if (location.json.quipComments != null) {
                 log("Skipping already downloaded comments")
@@ -39,17 +64,7 @@ object QuipDownloadComments {
             val html = thread.html
             val page = Jsoup.parse(html)
             log("Requesting comments")
-            val recentMessages = withBackoff {
-                QuipMessage.getRecentMessages(
-                    thread.id,
-                    100,
-                    null,
-                    null,
-                    null,
-                    QuipThread.SortedBy.ASC,
-                    null
-                )
-            }
+            val recentMessages = downloadAllComments(thread.id)
             require(recentMessages.size < 100) {
                 "Too many comments"
             }

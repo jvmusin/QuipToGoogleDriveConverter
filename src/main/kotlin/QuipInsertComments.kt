@@ -1,6 +1,5 @@
-import io.github.jvmusin.ProcessAllFiles
-import io.github.jvmusin.QuipDownloadComments
-import io.github.jvmusin.QuipFileType
+package io.github.jvmusin
+
 import jakarta.xml.bind.JAXBElement
 import org.docx4j.jaxb.Context
 import org.docx4j.openpackaging.packages.WordprocessingMLPackage
@@ -77,7 +76,7 @@ object QuipInsertComments {
     }
 
     private fun extraNode(): R = factory.createR().also { r ->
-        r.content.add(factory.createText().also { t -> t.value = "\u00A0"; t.space = "preserve" })
+        r.content.add(factory.createText().also { t -> t.value = "\u200B"; t.space = "preserve" })
     }
 
     private fun createThread(
@@ -203,6 +202,7 @@ object QuipInsertComments {
                 if (node is TextNode) texts.add(node.text())
             }
         }, html)
+        require(foundTag) { "Tag not found" }
         return texts
     }
 

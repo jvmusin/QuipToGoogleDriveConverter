@@ -1,7 +1,5 @@
-import io.github.jvmusin.ProcessAllFiles
-import io.github.jvmusin.QuipDownloadComments
-import io.github.jvmusin.QuipFileType
-import io.github.jvmusin.QuipUserRepository
+package io.github.jvmusin
+
 import org.docx4j.openpackaging.packages.SpreadsheetMLPackage
 import org.docx4j.openpackaging.parts.PartName
 import org.docx4j.openpackaging.parts.SpreadsheetML.CommentsPart
