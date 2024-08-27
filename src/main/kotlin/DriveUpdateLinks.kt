@@ -2,8 +2,10 @@ package io.github.jvmusin
 
 import io.github.jvmusin.ProcessAllFiles.FileLocation
 import kenichia.quipapi.QuipThread
+import org.jsoup.Jsoup
 import java.io.ByteArrayOutputStream
 import java.nio.file.Path
+import java.nio.file.Paths
 import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
 import java.util.zip.ZipOutputStream
@@ -19,12 +21,10 @@ object DriveUpdateLinks {
         private val updates = mutableMapOf<String, String>()
         fun process(entry: ZipEntry, content: ByteArray): Pair<ZipEntry, ByteArray> {
             val contentString = content.decodeToString()
-            require(content.contentEquals(contentString.encodeToByteArray())) {
-                "Decoding+Encoding gives different result"
-            }
 
             val (updated, replacements) = replaceLinks(contentString, linkIdToDriveInfo)
-            if (updated != contentString) updates += replacements
+            if (replacements.isEmpty()) return entry to content
+            updates += replacements
             return ZipEntry(entry.name) to updated.encodeToByteArray()
         }
 
@@ -39,6 +39,7 @@ object DriveUpdateLinks {
 
         val os = ByteArrayOutputStream()
         var anyLinksFound = false
+        val modifier = ReplaceLinksModifier(linkIdToDriveInfo)
         file.inputStream().use { fileIS ->
             ZipInputStream(fileIS).use { fileZIS ->
                 ZipOutputStream(os).use { outFileZOS ->
@@ -46,7 +47,6 @@ object DriveUpdateLinks {
                         val e = fileZIS.nextEntry ?: break
                         val bytes = fileZIS.readBytes()
 
-                        val modifier = ReplaceLinksModifier(linkIdToDriveInfo)
                         val (newEntry, newContent) =
                             if (e.name.endsWith(".rels")) modifier.process(e, bytes)
                             else e to bytes
@@ -62,17 +62,15 @@ object DriveUpdateLinks {
             .withCommentsAndAuthorAndLinksDocumentPath
         destination.writeBytes(os.toByteArray())
         if (!anyLinksFound) return null
-        return destination to ReplaceLinksModifier(linkIdToDriveInfo).updates()
+        return destination to modifier.updates()
     }
 
     data class DriveFileInfo(val id: String, val threadType: QuipThread.Type) {
-        fun buildLink(): String {
-            return when (threadType) {
-                QuipThread.Type.DOCUMENT -> "docs.google.com/document/d/$id"
-                QuipThread.Type.SPREADSHEET -> "docs.google.com/spreadsheets/d/$id"
-                QuipThread.Type.SLIDES -> "drive.google.com/file/d/$id"
-                QuipThread.Type.CHAT -> error("Chats not supported")
-            }
+        val link = when (threadType) {
+            QuipThread.Type.DOCUMENT -> "docs.google.com/document/d/$id"
+            QuipThread.Type.SPREADSHEET -> "docs.google.com/spreadsheets/d/$id"
+            QuipThread.Type.SLIDES -> "drive.google.com/file/d/$id"
+            QuipThread.Type.CHAT -> error("Chats not supported")
         }
     }
 
@@ -84,14 +82,20 @@ object DriveUpdateLinks {
             val type = thread.getAsJsonPrimitive("type").asString
             val link = thread.getAsJsonPrimitive("link").asString
             val threadType = QuipThread.Type.valueOf(type.uppercase())
-            val linkId = link.removePrefix("https://jetbrains.quip.com/")
-            val driveId = it.value.json.driveFileId
-            linkId to DriveFileInfo(driveId!!, threadType) // TODO: Check file existence instead of !!
+            require(link.startsWith("https://jetbrains.quip.com/")) {
+                "Wrong format for the link (does not start with https://jetbrains.quip.com/) $link"
+            }
+            val linkId = link.removePrefix("https://jetbrains.quip.com/").lowercase()
+            val driveId = requireNotNull(it.value.json.driveFileId) {
+                "File is not uploaded to drive yet"
+            }
+            linkId to DriveFileInfo(driveId, threadType)
         }
 
         val totalCount = fileJsons.size
         for ((i, entry) in fileJsons.entries.withIndex()) {
             val (_, fileJson) = entry
+            currentFileLocation = fileJson
             val filePath = fileJson.documentPath
             val prefix = "${i + 1}/$totalCount $filePath"
             val updatedFileEntry = rebuildDocument(filePath, linkIdToDriveInfo)
@@ -110,6 +114,8 @@ object DriveUpdateLinks {
             driveClient.updateFile(fileJson.json.driveFileId!!, updatedFileEntry.first)
             logger.info("$prefix -- File updated")
         }
+
+        Paths.get("suspicious_links.tsv").writeLines(susLinks)
     }
 
     fun ByteArray.contains(other: ByteArray, thisOffset: Int): Boolean {
@@ -117,23 +123,56 @@ object DriveUpdateLinks {
         return other.indices.all { other[it] == this[thisOffset + it] }
     }
 
+    private val userRepository = QuipUserRepository()
+    private lateinit var currentFileLocation: FileLocation
+    private val susLinks = mutableListOf<String>()
+
     private fun replaceLinks(
         fileContent: String,
         linkIdToDriveInfo: Map<String, DriveFileInfo>
     ): Pair<String, Map<String, String>> {
-        val linkRegex = Regex("([^/.]+\\.)?quip.com/[a-zA-Z0-9]+")
+        val links = Jsoup.parse(fileContent).select("relationship").map { it.attr("target") }
         var result = fileContent
         val replacements = mutableMapOf<String, String>()
-        val matches = linkRegex.findAll(fileContent)
-            .map { it.value }
-            .distinct()
-            .sortedByDescending { it.length } // first process links with a company name before "quip.com"
-        for (match in matches) {
-            val linkId = match.substringAfter('/')
-            val driveFileInfo = linkIdToDriveInfo[linkId] ?: continue
-            val replacement = driveFileInfo.buildLink()
-            result = result.replace(match, replacement)
-            replacements[match] = replacement
+        val linksToQuip = links.filter { link ->
+            val protocol = link.substringBefore("://")
+            if (protocol == link) {
+                // protocol not found
+                require("quip.com" !in link.lowercase()) {
+                    "Protocol in a link to quip.com not found"
+                }
+                return@filter false
+            }
+            val afterProtocol = link.substring(protocol.length)
+            afterProtocol.matches(Regex("([^.]*\\.)?quip.com/.*", RegexOption.IGNORE_CASE))
+        }.distinct()
+
+        fun String.withTarget(): String = "Target=\"$this\""
+        fun String.replaceAndCheck(a: String, b: String): String = replace(a, b).also { it -> require(it != this) }
+        for (link in linksToQuip) {
+            val relativePath = link.substringAfter("://").substringAfter('/')
+            val linkId = relativePath.takeWhile { it.isLetterOrDigit() }.lowercase()
+
+            val driveFileInfo = linkIdToDriveInfo[linkId]
+            if (driveFileInfo != null) {
+                val replacement = driveFileInfo.link // TODO: check that there is nothing after the id
+                result = result.replaceAndCheck(link.withTarget(), replacement.withTarget())
+                replacements[link] = replacement
+                continue
+            }
+
+            val userEmail = userRepository.getUserEmail(linkId)
+            if (userEmail != null) {
+                val replacement = "mailto:$userEmail"
+                require(link.endsWith("quip.com/$linkId")) // do not allow anything after the user id
+                result = result.replaceAndCheck(link.withTarget(), replacement.withTarget())
+                replacements[link] = replacement
+                continue
+            }
+
+            val author = userRepository.getUserName(currentFileLocation.json.quipThread().authorId)
+            susLinks.add("${currentFileLocation.title}\t${author}\t${currentFileLocation.json.quipThread().link}\t$link")
+            println("Found a link to something unknown: $link")
         }
         return result to replacements
     }

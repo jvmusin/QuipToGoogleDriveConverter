@@ -26,12 +26,15 @@ val downloadedPath: Path = Paths.get("downloaded")
 val downloadedUsersPath: Path = Paths.get("downloaded_users")
 val downloadedPrivateFilesPath: Path = Paths.get("downloaded_private_files")
 
+private var quipClientInitialized = false
 fun Any.setupQuipClient(debug: Boolean = false) {
+    if (quipClientInitialized) return
     val logger = getLogger()
     logger.info("Initializing Quip Client")
     QuipClient.enableDebug(debug)
     QuipClient.setAccessToken(Settings.readQuipAccessToken())
     logger.info("Quip Client successfully initialized")
+    quipClientInitialized = true
 }
 
 fun Path.writeJson(content: Any) = writeText(gson().toJson(content), Charsets.UTF_8)
