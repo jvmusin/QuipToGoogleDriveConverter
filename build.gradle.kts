@@ -40,7 +40,6 @@ dependencies {
     // Docx4j for altering docx files like adding comments, for example
     implementation("org.docx4j:docx4j-core:11.5.0")
     implementation("org.docx4j:docx4j-JAXB-ReferenceImpl:11.5.0")
-    implementation("org.docx4j:docx4j-ImportXHTML-core:11.5.0")
 
     testImplementation(kotlin("test"))
 }
