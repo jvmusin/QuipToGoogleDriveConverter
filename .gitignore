@@ -45,9 +45,6 @@ bin/
 
 ### Custom ###
 downloaded
-downloaded_structure
-downloaded_structure_with_files
-downloaded_structure_with_files_root_only
 quip_emails_extra.json
 quip_users_scim.json
 credentials.json

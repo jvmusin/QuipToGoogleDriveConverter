@@ -43,7 +43,6 @@ class DriveClient(private val service: Drive) {
         return withBackoff {
             service.files().create(content, mediaContent).apply {
                 fields = "id"
-                isSupportsAllDrives = true
             }.execute().id
         }
     }
@@ -52,6 +51,6 @@ class DriveClient(private val service: Drive) {
         val mimeType = sourceFile.mimeType()
         val content = com.google.api.services.drive.model.File()
         val mediaContent = FileContent(mimeType, sourceFile.toFile())
-        withBackoff { service.files().update(fileId, content, mediaContent).setSupportsAllDrives(true).execute() }
+        withBackoff { service.files().update(fileId, content, mediaContent).execute() }
     }
 }

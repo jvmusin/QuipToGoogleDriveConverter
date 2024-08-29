@@ -1,7 +1,6 @@
 package io.github.jvmusin
 
 import com.google.gson.JsonObject
-import io.github.jvmusin.QuipAdminApi.listAllFiles
 import kenichia.quipapi.QuipFolder
 import kenichia.quipapi.QuipThread
 import java.nio.file.FileVisitResult
@@ -82,7 +81,7 @@ object QuipListPrivateFiles {
 
     private fun listAllNonFullySharedFiles(): Sequence<PrivateFileInfo> {
         val rootFolderMembers = QuipFolder.getFolder(Settings.read().quipFolderId, false).memberIds
-        return listAllFiles()
+        return QuipAdminApi.listAllFiles()
             .map(PrivateFileInfo::getOrCreate)
             .filter { file ->
                 val ownersIds = file.ownersIds()

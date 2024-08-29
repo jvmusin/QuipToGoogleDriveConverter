@@ -22,9 +22,10 @@ fun Any.getLogger(): Logger {
 
 fun gson(): Gson = GsonBuilder().setPrettyPrinting().create()
 
-val downloadedPath: Path = Paths.get("downloaded")
-val downloadedUsersPath: Path = Paths.get("downloaded_users")
-val downloadedPrivateFilesPath: Path = Paths.get("downloaded_private_files")
+private val downloadedRootPath = Paths.get("downloaded")
+val downloadedPath: Path = downloadedRootPath.resolve(Settings.read().quipFolderId)
+val downloadedUsersPath: Path = downloadedRootPath.resolve("_users")
+val downloadedPrivateFilesPath: Path = downloadedRootPath.resolve("_private")
 
 private var quipClientInitialized = false
 fun Any.setupQuipClient(debug: Boolean = false) {
