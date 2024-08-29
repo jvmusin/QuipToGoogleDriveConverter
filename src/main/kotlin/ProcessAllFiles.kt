@@ -124,13 +124,14 @@ abstract class ProcessAllFiles(private val processName: String? = null) {
     }
 
     class FolderLocation(override val path: Path) : Location {
-        val json = path.resolve("_folder.json").readFolderJson()!!
-        override val id = json.quipFolder().id
-        override val title = json.quipFolder().title
+        private val jsonPath = path.resolve("_folder.json")
+        val json = jsonPath.readFolderJson()!!
+        override val id: String = json.quipFolder().id
+        override val title: String = json.quipFolder().title
 
         fun updateJson(block: FolderJson.() -> Unit) {
             val newJson = json.copy().also(block)
-            path.writeJson(newJson)
+            jsonPath.writeJson(newJson)
         }
     }
 }
