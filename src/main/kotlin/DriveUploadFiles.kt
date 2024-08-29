@@ -28,11 +28,11 @@ object DriveUploadFiles {
         }
 
         override fun beforeVisitFolder(location: FolderLocation) {
-            // TODO: Maybe not use existing folders but always create a new one?
             val folderId = location.json.driveFolderId ?: run {
-                client.getOrCreateFolder(location.title, currentDriveFolder()).also { folderId ->
+                log("Creating folder on Google Drive")
+                client.createFolderOrThrowIfExists(location.title, currentDriveFolder()).also { folderId ->
                     location.updateJson { driveFolderId = folderId }
-                }
+                }.also { log("Folder is created with id $it") }
             }
             driveFolderIdStack.addLast(folderId)
         }
@@ -42,7 +42,7 @@ object DriveUploadFiles {
         }
 
         fun start() {
-            val quipFolder = client.getOrCreateFolder(name = Settings.read().driveFolderName, parent = null)
+            val quipFolder = client.createFolderOrThrowIfExists(name = Settings.read().driveFolderName, parent = null)
             driveFolderIdStack.addLast(quipFolder)
             run()
         }
