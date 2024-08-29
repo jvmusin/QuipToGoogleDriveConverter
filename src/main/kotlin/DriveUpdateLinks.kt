@@ -24,6 +24,6 @@ object DriveUpdateLinks {
                 )
                 log("File on Google Drive updated")
             }
-        }
+        }.run()
     }
 }

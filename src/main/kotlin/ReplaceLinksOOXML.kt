@@ -80,7 +80,7 @@ abstract class ReplaceLinksOOXML(
         fun String.replaceAndCheck(a: String, b: String): String = replace(a, b).also {
             require(it != this) { "Failed to replace '$a' with '$b' in '$this' (probably not found)" }
         }
-        for (quipLink in links) {
+        for (quipLink in links.distinct()) {
             val newLink = linksReplacer.replaceLink(quipLink)
             if (newLink != null) {
                 result = result.replaceAndCheck(quipLink.withTarget(), newLink.withTarget())

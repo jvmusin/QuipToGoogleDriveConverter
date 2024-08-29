@@ -21,15 +21,15 @@ class QuipUserAndDriveFileLinksReplacer(
             return null
         }
 
-        val afterProtocol = link.substring(protocol.length)
+        val afterProtocol = link.substringAfter("$protocol://")
         if (!afterProtocol.matches(Regex("([^.]*\\.)*quip.com/.*", RegexOption.IGNORE_CASE))) {
             require("quip.com" !in afterProtocol.lowercase()) {
-                "Found quip.com in a link which doesn't head to quip.com"
+                "Found quip.com in a link which doesn't head to quip.com: $link"
             }
             return null
         }
         val quipId = afterProtocol.substringAfter('/').takeWhile { it.isLetterOrDigit() }
-        quipIdToDriveLink[quipId]?.let { return it }
+        quipIdToDriveLink[quipId.lowercase()]?.let { return it }
 
         val userEmail = userRepository.getUserEmail(quipId)
         if (userEmail != null) {
