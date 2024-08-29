@@ -87,7 +87,7 @@ data class FileJson(
     fun quipThread() = quip.toQuipThreadReflection()
 }
 
-data class FolderJson(val quip: JsonObject, val driveFolderId: String? = null) {
+data class FolderJson(val quip: JsonObject, var driveFolderId: String? = null) {
     fun quipFolder() = quip.toQuipFolderReflection()
 }
 

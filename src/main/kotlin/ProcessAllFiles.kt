@@ -127,5 +127,10 @@ abstract class ProcessAllFiles(private val processName: String? = null) {
         val json = path.resolve("_folder.json").readFolderJson()!!
         override val id = json.quipFolder().id
         override val title = json.quipFolder().title
+
+        fun updateJson(block: FolderJson.() -> Unit) {
+            val newJson = json.copy().also(block)
+            path.writeJson(newJson)
+        }
     }
 }

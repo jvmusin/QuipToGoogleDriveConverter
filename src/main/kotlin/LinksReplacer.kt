@@ -1,6 +1,5 @@
 package io.github.jvmusin
 
-import io.github.jvmusin.ProcessAllFiles.FileLocation
 import kenichia.quipapi.QuipThread
 
 interface LinksReplacer {
@@ -22,7 +21,7 @@ class QuipUserAndDriveFileLinksReplacer(
         }
 
         val afterProtocol = link.substringAfter("$protocol://")
-        if (!afterProtocol.matches(Regex("([^.]*\\.)*quip.com/.*", RegexOption.IGNORE_CASE))) {
+        if (!afterProtocol.matches(afterProtocolRegex)) {
             require("quip.com" !in afterProtocol.lowercase()) {
                 "Found quip.com in a link which doesn't head to quip.com: $link"
             }
@@ -44,8 +43,17 @@ class QuipUserAndDriveFileLinksReplacer(
     }
 
     companion object {
+        private val afterProtocolRegex = Regex("([^.]*\\.)*quip.com/.+", RegexOption.IGNORE_CASE)
+
         fun fromDownloaded(): QuipUserAndDriveFileLinksReplacer {
             val quipIdToDriveLinkMapping = object {
+                fun extractQuipId(quipLink: String): String {
+                    require(quipLink.startsWith("https://jetbrains.quip.com/")) {
+                        "Wrong format for the link (does not start with https://jetbrains.quip.com/) $quipLink"
+                    }
+                    return quipLink.removePrefix("https://jetbrains.quip.com/").lowercase()
+                }
+
                 fun buildDriveFileLink(driveFileId: String, threadType: QuipThread.Type) = when (threadType) {
                     QuipThread.Type.DOCUMENT -> "https://docs.google.com/document/d/$driveFileId"
                     QuipThread.Type.SPREADSHEET -> "https://docs.google.com/spreadsheets/d/$driveFileId"
@@ -53,28 +61,30 @@ class QuipUserAndDriveFileLinksReplacer(
                     QuipThread.Type.CHAT -> error("Chats not supported")
                 }
 
-                fun collectFileLocations(): List<FileLocation> {
-                    val locations = mutableListOf<FileLocation>()
-                    object : ProcessAllFiles("Collecting file locations") {
+                fun buildQuipIdToDriveLinkMapping(): Map<String, String> {
+                    val quipIdToDriveLinkMapping = mutableMapOf<String, String>()
+                    object : ProcessAllFiles("Building Quip ID to Drive link mappings") {
                         override fun visitFile(location: FileLocation) {
-                            locations += location
+                            val quipThread = location.json.quipThread()
+                            val quipId = extractQuipId(quipThread.link)
+                            val driveFileId = requireNotNull(location.json.driveFileId) {
+                                "File is not uploaded to Google Drive yet"
+                            }
+                            require(quipId !in quipIdToDriveLinkMapping)
+                            quipIdToDriveLinkMapping[quipId] = buildDriveFileLink(driveFileId, quipThread.type)
+                        }
+
+                        override fun beforeVisitFolder(location: FolderLocation) {
+                            val folderId = requireNotNull(location.json.driveFolderId) {
+                                "Folder is not uploaded to Google Drive yet"
+                            }
+                            val quipId = extractQuipId(location.json.quipFolder().link)
+                            require(quipId !in quipIdToDriveLinkMapping)
+                            quipIdToDriveLinkMapping[quipId] = "https://drive.google.com/drive/folders/$folderId"
                         }
                     }.run()
-                    return locations
+                    return quipIdToDriveLinkMapping
                 }
-
-                fun buildQuipIdToDriveLinkMapping(): Map<String, String> =
-                    collectFileLocations().associate {
-                        val link = it.json.quipThread().link
-                        require(link.startsWith("https://jetbrains.quip.com/")) {
-                            "Wrong format for the link (does not start with https://jetbrains.quip.com/) $link"
-                        }
-                        val quipId = link.removePrefix("https://jetbrains.quip.com/").lowercase()
-                        val driveFileId = requireNotNull(it.json.driveFileId) {
-                            "File is not uploaded to drive yet"
-                        }
-                        quipId to buildDriveFileLink(driveFileId, it.json.quipThread().type)
-                    }
             }.buildQuipIdToDriveLinkMapping()
             return QuipUserAndDriveFileLinksReplacer(quipIdToDriveLinkMapping)
         }

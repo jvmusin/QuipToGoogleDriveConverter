@@ -28,7 +28,13 @@ object DriveUploadFiles {
         }
 
         override fun beforeVisitFolder(location: FolderLocation) {
-            driveFolderIdStack.addLast(client.getOrCreateFolder(location.title, currentDriveFolder()))
+            // TODO: Maybe not use existing folders but always create a new one?
+            val folderId = location.json.driveFolderId ?: run {
+                client.getOrCreateFolder(location.title, currentDriveFolder()).also { folderId ->
+                    location.updateJson { driveFolderId = folderId }
+                }
+            }
+            driveFolderIdStack.addLast(folderId)
         }
 
         override fun afterVisitFolder(location: FolderLocation) {
