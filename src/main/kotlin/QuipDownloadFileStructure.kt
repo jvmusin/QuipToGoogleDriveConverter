@@ -36,7 +36,7 @@ object QuipDownloadFileStructure {
     }
 
     private fun processFolder(id: String, path: Path, progress: Progress) {
-        if (!path.exists()) path.createDirectories()
+        path.createDirectories()
 
         val unnamedProgress = progress.named(id)
         val jsonPath = path.resolve("_folder.json")
@@ -65,7 +65,7 @@ object QuipDownloadFileStructure {
         children
             .sortedBy { it.isFolder } // process files before folders
             .forEachIndexed { index, child ->
-                process(child, path.resolve(child.id), namedProgress.withIndex(index + 1, children.size))
+                process(child, path.resolve(child.id), namedProgress.withIndex(index, children.size))
             }
         jsonPath.writeJson(folder.toJson())
         logger.info(namedProgress.action("Downloaded folder structure"))
