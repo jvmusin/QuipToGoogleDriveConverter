@@ -16,34 +16,43 @@ abstract class ReplaceLinksOOXML(
     private val linksReplacer: LinksReplacer
 ) {
     fun run() {
+        val userRepository = QuipUserRepository()
+        val unresolvedQuipLinks = mutableListOf<String>()
+        val allReplacedLinks = mutableMapOf<String, String?>()
+
         object : ProcessAllFiles() {
             override fun visitFile(location: FileLocation) {
-                currentFileLocation = location
-                log("Replacing links")
-                val updatedContent = rebuildDocument(chooseInputFilePath(location))
-                if (updatedContent != null) {
-                    log("Links have been replaced")
-                } else {
-                    log("No links have been replaced")
-                }
-                onFileProcessed(location, updatedContent)
+                val rebuiltDocument = rebuildDocument(location)
+                onFileProcessed(location, rebuiltDocument.content)
+                allReplacedLinks += rebuiltDocument.replacedLinks
+                rebuiltDocument.replacedLinks
+                    .filterValues { it == null }.keys
+                    .filter { "quip.com" in it.lowercase() }
+                    .forEach { link ->
+                        val author = userRepository.getUserName(location.json.quipThread().authorId)
+                        unresolvedQuipLinks += "${location.title}\t${author}\t${location.json.quipThread().link}\t$link"
+                    }
             }
         }.run()
 
-        Paths.get("suspicious_links.tsv").writeLines(susLinks)
+        Paths.get("unresolved_quip_links.tsv").writeLines(unresolvedQuipLinks)
     }
 
-    abstract fun ProcessAllFiles.onFileProcessed(fileLocation: FileLocation, updatedContent: ByteArray?)
+    open fun ProcessAllFiles.onFileProcessed(fileLocation: FileLocation, updatedContent: ByteArray?) {}
     abstract fun chooseInputFilePath(fileLocation: FileLocation): Path
 
-    private fun rebuildDocument(
-        documentPath: Path
-    ): ByteArray? {
+    data class RebuiltDocument<T>(val content: T?, val replacedLinks: Map<String, String?>, val location: FileLocation)
+
+    fun rebuildDocument(
+        location: FileLocation
+    ): RebuiltDocument<ByteArray> {
+        val documentPath = chooseInputFilePath(location)
         if (documentPath.extension != "docx" && documentPath.extension != "xlsx") {
-            return null
+            return RebuiltDocument(null, emptyMap(), location)
         }
 
         val os = ByteArrayOutputStream()
+        val allReplacedLinks = mutableMapOf<String, String?>()
         documentPath.inputStream().use { fileIS ->
             ZipInputStream(fileIS).use { fileZIS ->
                 ZipOutputStream(os).use { fileZOS ->
@@ -51,9 +60,14 @@ abstract class ReplaceLinksOOXML(
                         val e = fileZIS.nextEntry ?: break
                         val bytes = fileZIS.readBytes()
                         val withReplacedLinks = when {
-                            e.name.endsWith(".rels") -> replaceLinks(
-                                fileContent = bytes.decodeToString(),
-                            )?.encodeToByteArray()
+                            e.name.endsWith(".rels") -> {
+                                val rebuiltDoc = replaceLinksInRels(
+                                    fileContent = bytes.decodeToString(),
+                                    location = location
+                                )
+                                allReplacedLinks += rebuiltDoc.replacedLinks
+                                rebuiltDoc.content?.encodeToByteArray()
+                            }
 
                             else -> null
                         }
@@ -67,17 +81,15 @@ abstract class ReplaceLinksOOXML(
             }
         }
 
-        return os.toByteArray()
+        return RebuiltDocument(os.toByteArray(), allReplacedLinks, location)
     }
 
-    private val userRepository = QuipUserRepository()
-    private lateinit var currentFileLocation: FileLocation
-    private val susLinks = mutableListOf<String>()
 
-    private fun replaceLinks(
+    private fun replaceLinksInRels(
         fileContent: String,
-    ): String? {
-        val links = Jsoup.parse(fileContent).select("Relationship").map { it.attr("Target") }
+        location: FileLocation,
+    ): RebuiltDocument<String> {
+        val links = extractLinksFromRels(fileContent)
         var result = fileContent
         val replacements = mutableMapOf<String, String>()
 
@@ -85,18 +97,21 @@ abstract class ReplaceLinksOOXML(
         fun String.replaceAndCheck(a: String, b: String): String = replace(a, b).also {
             require(it != this) { "Failed to replace '$a' with '$b' in '$this' (probably not found)" }
         }
-        for (quipLink in links.distinct()) {
-            val newLink = linksReplacer.replaceLink(quipLink)
-            if (newLink != null) {
-                result = result.replaceAndCheck(quipLink.withTarget(), newLink.withTarget())
-                replacements[quipLink] = newLink // TODO: log it?
-                continue
-            }
 
-            val author = userRepository.getUserName(currentFileLocation.json.quipThread().authorId)
-            if ("quip.com" in quipLink.lowercase())
-                susLinks.add("${currentFileLocation.title}\t${author}\t${currentFileLocation.json.quipThread().link}\t$quipLink")
+        val allReplacedLinks = replaceLinks(links)
+        for ((link, replacement) in allReplacedLinks.filterNonNull()) {
+            result = result.replaceAndCheck(link.withTarget(), replacement.withTarget())
         }
-        return result.takeIf { replacements.isNotEmpty() }
+        return RebuiltDocument(result.takeIf { replacements.isNotEmpty() }, allReplacedLinks, location)
+    }
+
+    fun extractLinksFromRels(rels: String) = Jsoup.parse(rels).select("Relationship").map { it.attr("Target") }
+
+    fun Map<String, String?>.filterNonNull(): Map<String, String> = this
+        .mapValues { it.value.orEmpty() }
+        .filterValues { it.isNotEmpty() }
+
+    fun replaceLinks(links: List<String>): Map<String, String?> {
+        return links.distinct().associateWith(linksReplacer::replaceLink)
     }
 }

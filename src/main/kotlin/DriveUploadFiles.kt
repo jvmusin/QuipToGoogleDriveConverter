@@ -3,11 +3,33 @@ package io.github.jvmusin
 object DriveUploadFiles {
     @JvmStatic
     fun main(args: Array<String>) {
-        Visitor().start()
+        val client = DriveClientFactory.createClient()
+        FileAndFolderUploader(client).start()
+        ShortcutUploader(client).run()
     }
 
-    private class Visitor : ProcessAllFiles() {
-        private val client = DriveClientFactory.createClient()
+    private class ShortcutUploader(private val client: DriveClient) : ProcessAllFiles() {
+        override fun visitFile(location: FileLocation) {
+            if (location.isOriginal()) return
+            log("Uploading shortcut")
+            val driveFolder = requireNotNull(location.readFolderJson().driveFolderId) {
+                "Folder is not uploaded"
+            }
+            client.createShortcut(
+                targetId = requireNotNull(location.json.originalDriveFileId) {
+                    "Original file id is not populated"
+                },
+                parentFolderId = driveFolder,
+                shortcutName = location.title,
+                id = requireNotNull(location.json.driveFileId) {
+                    "File id is not populated"
+                }
+            )
+            log("Shortcut uploaded")
+        }
+    }
+
+    private class FileAndFolderUploader(private val client: DriveClient) : ProcessAllFiles() {
         private val driveFolderIdStack = mutableListOf<String>()
         private val foundIds = mutableSetOf<String>()
         private fun currentDriveFolder() = driveFolderIdStack.lastOrNull()

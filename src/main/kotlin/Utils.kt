@@ -83,6 +83,8 @@ data class FileJson(
     val quip: JsonObject,
     var quipComments: List<QuipDownloadComments.CommentsThread>? = null,
     var driveFileId: String? = null,
+    var isOriginal: Boolean? = null,
+    var originalDriveFileId: String? = null // same as driveFileId for original and another for duplicates
 ) {
     fun quipThread() = quip.toQuipThreadReflection()
 }

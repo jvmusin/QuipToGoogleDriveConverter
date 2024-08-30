@@ -22,9 +22,9 @@ class QuipUserAndDriveFileLinksReplacer(
 
         val afterProtocol = link.substringAfter("$protocol://")
         if (!afterProtocol.matches(afterProtocolRegex)) {
-            require("quip.com" !in afterProtocol.lowercase()) {
-                "Found quip.com in a link which doesn't head to quip.com: $link"
-            }
+//            require("quip.com" !in afterProtocol.lowercase()) {
+//                "Found quip.com in a link which doesn't head to quip.com: $link"
+//            }
             return null
         }
         val quipId = afterProtocol.substringAfter('/').takeWhile { it.isLetterOrDigit() }
@@ -33,9 +33,9 @@ class QuipUserAndDriveFileLinksReplacer(
         val userEmail = userRepository.getUserEmail(quipId)
         if (userEmail != null) {
             val replacement = "mailto:$userEmail"
-            require(link.endsWith("quip.com/$quipId", ignoreCase = true)) {
-                "Link is expected to end with $quipId, but it is $link"
-            } // do not allow anything after the user id
+//            require(link.endsWith("quip.com/$quipId", ignoreCase = true)) {
+//                "Link is expected to end with $quipId, but it is $link"
+//            } // do not allow anything after the user id
             return replacement
         }
 
@@ -43,7 +43,7 @@ class QuipUserAndDriveFileLinksReplacer(
     }
 
     companion object {
-        private val afterProtocolRegex = Regex("([^.]*\\.)*quip.com/.+", RegexOption.IGNORE_CASE)
+        private val afterProtocolRegex = Regex("([^.]*\\.)*quip\\.com/.+", RegexOption.IGNORE_CASE)
 
         fun fromDownloaded(): QuipUserAndDriveFileLinksReplacer {
             val quipIdToDriveLinkMapping = object {
@@ -65,6 +65,7 @@ class QuipUserAndDriveFileLinksReplacer(
                     val quipIdToDriveLinkMapping = mutableMapOf<String, String>()
                     object : ProcessAllFiles("Building Quip ID to Drive link mappings") {
                         override fun visitFile(location: FileLocation) {
+                            if (!location.isOriginal()) return
                             val quipThread = location.json.quipThread()
                             val quipId = extractQuipId(quipThread.link)
                             val driveFileId = requireNotNull(location.json.driveFileId) {

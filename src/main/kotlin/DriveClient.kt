@@ -3,15 +3,20 @@ package io.github.jvmusin
 import com.google.api.client.googleapis.json.GoogleJsonResponseException
 import com.google.api.client.http.FileContent
 import com.google.api.services.drive.Drive
+import com.google.api.services.drive.model.File
 import java.nio.file.Path
 import kotlin.io.path.extension
 
 class DriveClient(private val service: Drive) {
     data class DriveResource(val id: String, val name: String, val webViewLink: String, val mimeType: String)
 
-    fun generateIds(count: Int): List<String> {
+    enum class IdType {
+        FILES,
+        SHORTCUTS
+    }
+
+    fun generateIds(count: Int, type: IdType): List<String> {
         require(count >= 0)
-        if (count == 0) return emptyList()
 
         val ids = mutableListOf<String>()
         while (ids.size < count) {
@@ -19,6 +24,7 @@ class DriveClient(private val service: Drive) {
             val generatedIds = withBackoff {
                 service.files().generateIds()
                     .setCount(generateNow)
+                    .setType(type.name.lowercase())
                     .execute()
                     .ids
             }
@@ -98,7 +104,24 @@ class DriveClient(private val service: Drive) {
         }
     }
 
+    fun createShortcut(targetId: String, parentFolderId: String, shortcutName: String, id: String): File {
+        val shortcutMetadata = File().apply {
+            this.name = shortcutName
+            this.mimeType = SHORTCUT_MIME_TYPE
+            this.shortcutDetails = File.ShortcutDetails().setTargetId(targetId)
+            this.parents = listOfNotNull(parentFolderId)
+            this.id = id
+        }
+
+        val shortcut: File = service.files().create(shortcutMetadata)
+            .setFields("id, name, webViewLink, shortcutDetails")
+            .execute()
+
+        return shortcut
+    }
+
     private companion object {
         const val FOLDER_MIME_TYPE = "application/vnd.google-apps.folder"
+        const val SHORTCUT_MIME_TYPE = "application/vnd.google-apps.shortcut"
     }
 }

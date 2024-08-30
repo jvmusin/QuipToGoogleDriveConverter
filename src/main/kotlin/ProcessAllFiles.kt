@@ -9,7 +9,7 @@ abstract class ProcessAllFiles(private val processName: String? = null) {
     private val progresses = ArrayDeque<Progress>()
     private var currentFileIndex = 0
     private var totalFilesCount = 0
-    private fun progress() = progresses.last()
+    protected fun progress() = progresses.last()
     private val logger = getLogger()
 
     private fun processFolder(location: FolderLocation, index: Int, total: Int) {
@@ -117,9 +117,17 @@ abstract class ProcessAllFiles(private val processName: String? = null) {
                 )
             )
 
+        fun readAgain() = FileLocation(path)
+        fun readFolderJson() = path.resolveSibling("_folder.json").readFolderJson()!!
+
         fun updateJson(block: FileJson.() -> Unit) {
             val newJson = json.copy().also(block)
             path.writeJson(newJson)
+        }
+
+        fun isOriginal(): Boolean {
+            val mainFolder = json.quipThread().sharedFolderIds.getOrNull(0)
+            return path.resolveSibling("_folder.json").readFolderJson()!!.quipFolder().id == mainFolder
         }
     }
 
@@ -132,6 +140,13 @@ abstract class ProcessAllFiles(private val processName: String? = null) {
         fun updateJson(block: FolderJson.() -> Unit) {
             val newJson = json.copy().also(block)
             jsonPath.writeJson(newJson)
+        }
+    }
+
+    companion object {
+        fun <T : ProcessAllFiles, R> T.runAndGet(get: T.() -> R): R {
+            run()
+            return get()
         }
     }
 }

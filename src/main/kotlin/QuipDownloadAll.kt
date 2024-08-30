@@ -4,6 +4,7 @@ object QuipDownloadAll {
     @JvmStatic
     fun main(args: Array<String>) {
         QuipDownloadFileStructure.main(args)
+        QuipMarkOriginalFiles.main(args)
         QuipDownloadFiles.main(args)
         QuipDownloadComments.main(args)
         // TODO: Add a step here to collect all links
