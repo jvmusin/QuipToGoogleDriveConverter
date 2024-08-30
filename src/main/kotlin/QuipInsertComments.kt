@@ -314,7 +314,7 @@ object QuipInsertComments {
                 when (location.type) {
                     QuipFileType.Docx -> {
                         log("Inserting comments into docx")
-                        insertDocxComments(location)
+                        insertDocxComments(location) // TODO: Extract docx comments insertion to a separate file
                         log("Comments inserted")
                     }
 

@@ -19,16 +19,21 @@ abstract class ReplaceLinksOOXML(
         object : ProcessAllFiles() {
             override fun visitFile(location: FileLocation) {
                 currentFileLocation = location
+                log("Replacing links")
                 val updatedContent = rebuildDocument(chooseInputFilePath(location))
-                if (updatedContent != null)
-                    onLinksReplaced(location, updatedContent)
+                if (updatedContent != null) {
+                    log("Links have been replaced")
+                } else {
+                    log("No links have been replaced")
+                }
+                onFileProcessed(location, updatedContent)
             }
         }.run()
 
         Paths.get("suspicious_links.tsv").writeLines(susLinks)
     }
 
-    open fun ProcessAllFiles.onLinksReplaced(fileLocation: FileLocation, updatedContent: ByteArray) {}
+    abstract fun ProcessAllFiles.onFileProcessed(fileLocation: FileLocation, updatedContent: ByteArray?)
     abstract fun chooseInputFilePath(fileLocation: FileLocation): Path
 
     private fun rebuildDocument(

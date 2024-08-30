@@ -8,33 +8,41 @@ object DriveUploadFiles {
 
     private class Visitor : ProcessAllFiles() {
         private val client = DriveClientFactory.createClient()
-        private val driveFolderIdStack = ArrayDeque<String>()
+        private val driveFolderIdStack = mutableListOf<String>()
+        private val foundIds = mutableSetOf<String>()
         private fun currentDriveFolder() = driveFolderIdStack.lastOrNull()
 
         override fun visitFile(location: FileLocation) {
-            location.json.driveFileId?.let {
-                log("Skipping previously uploaded file with Drive id $it")
+            val driveFileId = location.json.driveFileId!!
+            if (driveFileId in foundIds) {
+                log("File already uploaded, skipping")
                 return
             }
 
-            log("Saving file on Google Drive")
-            val driveId = client.createFile(
+            log("Uploading file on Google Drive")
+            client.createFile(
                 parent = requireNotNull(currentDriveFolder()),
                 name = location.title,
-                sourceFile = location.withCommentsAndAuthorDocumentPath
+                sourceFile = location.withCommentsAndAuthorAndLinksDocumentPath,
+                id = driveFileId
             )
-            location.updateJson { driveFileId = driveId }
-            log("File saved on Google Drive with id $driveId")
+            foundIds += driveFileId
+            log("File successfully uploaded on Google Drive")
         }
 
         override fun beforeVisitFolder(location: FolderLocation) {
-            val folderId = location.json.driveFolderId ?: run {
+            val driveFolderId = location.json.driveFolderId!!
+            if (foundIds.add(driveFolderId)) {
                 log("Creating folder on Google Drive")
-                client.createFolderOrThrowIfExists(location.title, currentDriveFolder()).also { folderId ->
-                    location.updateJson { driveFolderId = folderId }
-                }.also { log("Folder is created with id $it") }
+                client.createFolder(location.title, driveFolderId, currentDriveFolder())
+                log("Folder created")
+            } else {
+                log("Folder already exists on Google Drive, requesting its contents' ids")
+                val ids = client.listFolderContents(driveFolderId).map { it.id }
+                foundIds += ids
+                log("Saved ${ids.size} ids from a folder")
             }
-            driveFolderIdStack.addLast(folderId)
+            driveFolderIdStack.add(driveFolderId)
         }
 
         override fun afterVisitFolder(location: FolderLocation) {
@@ -42,8 +50,9 @@ object DriveUploadFiles {
         }
 
         fun start() {
-            val quipFolder = client.createFolderOrThrowIfExists(name = Settings.read().driveFolderName, parent = null)
-            driveFolderIdStack.addLast(quipFolder)
+            val rootFolderId: String? = null
+            foundIds.clear()
+            foundIds.addAll(client.listFolderContents(rootFolderId).map { it.id })
             run()
         }
     }
