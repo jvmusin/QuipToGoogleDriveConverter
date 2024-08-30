@@ -9,28 +9,6 @@ import kotlin.io.path.extension
 class DriveClient(private val service: Drive) {
     data class DriveResource(val id: String, val name: String, val webViewLink: String, val mimeType: String)
 
-    private fun listFolders(parentFolderId: String?): List<DriveResource> {
-        val folders = mutableListOf<DriveResource>()
-        var pageToken: String? = null
-
-        do {
-            val result = withBackoff {
-                service.files().list()
-                    .setQ("'${parentFolderId ?: "root"}' in parents and mimeType = '$FOLDER_MIME_TYPE'")
-                    .setSpaces("drive")
-                    .setFields("nextPageToken, files(id, name, webViewLink, mimeType)")
-                    .setPageToken(pageToken)
-                    .execute()
-            }
-
-            folders += result.files.map { DriveResource(it.id, it.name, it.webViewLink, it.mimeType) }
-
-            pageToken = result.nextPageToken
-        } while (pageToken != null)
-
-        return folders
-    }
-
     fun generateIds(count: Int): List<String> {
         require(count >= 0)
         if (count == 0) return emptyList()
@@ -73,14 +51,6 @@ class DriveClient(private val service: Drive) {
         return folderNames
     }
 
-    fun getFolder(name: String, parent: String?): String? {
-        val acceptableFolders = listFolders(parent).filter { it.name == name }
-        require(acceptableFolders.size < 2) {
-            "Multiple folders named '$name' found"
-        }
-        return acceptableFolders.singleOrNull()?.id
-    }
-
     fun createFolder(name: String, id: String, parent: String?): String {
         val content = com.google.api.services.drive.model.File().apply {
             this.name = name
@@ -100,42 +70,12 @@ class DriveClient(private val service: Drive) {
         }
     }
 
-    fun createFolderOrThrowIfExists(name: String, parent: String?): String {
-        require(getFolder(name, parent) == null) {
-            "Folder named `$name` already exists"
-        }
-        return createFolder(name, parent)
-    }
-
-    fun createFolder(name: String, parent: String?): String {
-        val content = com.google.api.services.drive.model.File().apply {
-            this.name = name
-            this.mimeType = FOLDER_MIME_TYPE
-            this.parents = listOfNotNull(parent)
-        }
-        return withBackoff { service.files().create(content).setFields("id").execute().id }
-    }
-
     private fun Path.mimeType() = when (extension) {
         "pdf" -> "application/pdf"
         "xlsx" -> "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         "docx" -> "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
         "md" -> "text/markdown"
         else -> error("Unsupported extension for $this")
-    }
-
-    fun createFile(parent: String, name: String, sourceFile: Path): String {
-        val mimeType = sourceFile.mimeType()
-        val content = com.google.api.services.drive.model.File().apply {
-            this.name = name
-            this.parents = listOf(parent)
-        }
-        val mediaContent = FileContent(mimeType, sourceFile.toFile())
-        return withBackoff {
-            service.files().create(content, mediaContent).apply {
-                fields = "id"
-            }.execute().id
-        }
     }
 
     fun createFile(name: String, id: String, parent: String, sourceFile: Path): String {
@@ -158,20 +98,7 @@ class DriveClient(private val service: Drive) {
         }
     }
 
-    fun updateFile(fileId: String, sourceFile: Path) {
-        val mimeType = sourceFile.mimeType()
-        val content = com.google.api.services.drive.model.File()
-        val mediaContent = FileContent(mimeType, sourceFile.toFile())
-        withBackoff { service.files().update(fileId, content, mediaContent).execute() }
-    }
-
     private companion object {
         const val FOLDER_MIME_TYPE = "application/vnd.google-apps.folder"
-
-        @JvmStatic
-        fun main(args: Array<String>) {
-            val contents = DriveClientFactory.createClient().listFolderContents(null)
-            for (c in contents) println(c)
-        }
     }
 }
