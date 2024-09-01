@@ -1,6 +1,5 @@
 package io.github.jvmusin
 
-import org.jsoup.Jsoup
 import java.nio.file.Path
 import java.nio.file.Paths
 import kotlin.io.path.writeLines
@@ -8,19 +7,17 @@ import kotlin.io.path.writeLines
 object OOXMLFindLinks {
     @JvmStatic
     fun main(args: Array<String>) {
-        val userRepository = QuipUserRepository()
+        val userRepository = QuipUserRepository.INSTANCE
         val lines = mutableListOf<String>()
+        val allLinksInComments = mutableListOf<String>()
         object : ProcessAllFiles() {
             override fun visitFile(location: FileLocation) {
                 if (!location.isOriginal()) return
                 val unresolvedLinksInComments = location.json.quipComments!!
-                    .flatMap { t ->
-                        t.comments.map { c ->
-                            c.text
-                        }
-                    }
+                    .flatMap { t -> t.comments.map { c -> c.text } }
                     .flatMap(::findLinksInText)
-                    .filter { linksReplacer.replaceLink(it) == null }
+                    .filter { replaceLinkWithMaybeDroppingSomeSuffix(it) == null }
+                allLinksInComments += unresolvedLinksInComments
                 val linksInRels = relsFinder.rebuildDocument(location)
                 val unresolvedLinks =
                     linksInRels.replacedLinks.filter {
@@ -38,7 +35,6 @@ object OOXMLFindLinks {
         Paths.get("unresolved_links.tsv").writeLines(lines)
     }
 
-
     val linksReplacer = QuipUserAndDriveFileLinksReplacer.fromDownloaded()
     val relsFinder = object : ReplaceLinksOOXML(linksReplacer) {
         override fun chooseInputFilePath(fileLocation: ProcessAllFiles.FileLocation): Path {
@@ -46,24 +42,20 @@ object OOXMLFindLinks {
         }
     }
 
-    fun findLinksInText(text: String): List<String> {
-        val linkRegex = Regex("\\S*quip.com/\\S+")
-        return linkRegex.findAll(text).map { it.value }.toList()
-    }
-
-    fun findLinksInRels(rels: String): List<String> {
-        return Jsoup.parse(rels).select("Relationship")
-            .map { it.attr("Target") }
-            .filter { "quip.com" in it.lowercase() }
-    }
-
-    fun findLinksInRels(): List<String> {
-        val links = mutableListOf<String>()
-        val replacer = object : ReplaceLinksOOXML(QuipUserAndDriveFileLinksReplacer.fromDownloaded()) {
-            override fun chooseInputFilePath(fileLocation: ProcessAllFiles.FileLocation): Path {
-                return fileLocation.documentPath
-            }
+    fun replaceLinkWithMaybeDroppingSomeSuffix(link: String): Pair<String, String>? {
+        val replaced = linksReplacer.replaceLink(link)
+        return when {
+            replaced != null -> link to replaced
+            link.last().isLetterOrDigit() -> replaceLinkWithMaybeDroppingSomeSuffix(link.dropLast(1))
+            else -> null
         }
-        return links
+    }
+
+    fun findLinksInText(text: String): List<String> {
+        val linkRegex = Regex("https://([\\w-]*\\.)*quip.com/[\\w-/#]+", RegexOption.IGNORE_CASE)
+
+        // TODO: Try look-ahead
+        return text.split(Regex("https://")).drop(1).map { "https://$it" }
+            .flatMap { s -> linkRegex.findAll(s).map { it.value } } // no links found
     }
 }

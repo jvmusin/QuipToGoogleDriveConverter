@@ -97,7 +97,7 @@ object QuipInsertCommentsSpreadsheets {
             rows.add(Row().also { row ->
                 row.r = 1
                 row.c.add(newCell("A1", "Spreadsheet author"))
-                val userRepository = QuipUserRepository()
+                val userRepository = QuipUserRepository.INSTANCE
                 val authorId = location.json.quipThread().authorId
                 val authorName = userRepository.getUserName(authorId)!!
                 row.c.add(newCell("B1", authorName))

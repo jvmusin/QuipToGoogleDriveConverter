@@ -15,7 +15,7 @@ object QuipInsertAuthors {
     @JvmStatic
     fun main(args: Array<String>) {
         val factory = Context.getWmlObjectFactory()
-        val userRepository = QuipUserRepository()
+        val userRepository = QuipUserRepository.INSTANCE
 
         fun getAuthorString(authorId: String): String {
             val user = requireNotNull(userRepository.getUser(authorId)) {

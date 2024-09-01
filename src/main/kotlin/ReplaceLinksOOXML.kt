@@ -16,7 +16,7 @@ abstract class ReplaceLinksOOXML(
     private val linksReplacer: LinksReplacer
 ) {
     fun run() {
-        val userRepository = QuipUserRepository()
+        val userRepository = QuipUserRepository.INSTANCE
         val unresolvedQuipLinks = mutableListOf<String>()
         val allReplacedLinks = mutableMapOf<String, String?>()
 
@@ -83,7 +83,6 @@ abstract class ReplaceLinksOOXML(
 
         return RebuiltDocument(os.toByteArray(), allReplacedLinks, location)
     }
-
 
     private fun replaceLinksInRels(
         fileContent: String,

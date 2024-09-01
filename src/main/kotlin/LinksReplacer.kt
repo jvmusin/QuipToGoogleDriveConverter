@@ -9,7 +9,7 @@ interface LinksReplacer {
 class QuipUserAndDriveFileLinksReplacer(
     private val quipIdToDriveLink: Map<String, String>
 ) : LinksReplacer {
-    private val userRepository = QuipUserRepository()
+    private val userRepository = QuipUserRepository.INSTANCE
 
     override fun replaceLink(link: String): String? {
         val protocol = link.substringBefore("://")
@@ -21,29 +21,18 @@ class QuipUserAndDriveFileLinksReplacer(
         }
 
         val afterProtocol = link.substringAfter("$protocol://")
-        if (!afterProtocol.matches(afterProtocolRegex)) {
-//            require("quip.com" !in afterProtocol.lowercase()) {
-//                "Found quip.com in a link which doesn't head to quip.com: $link"
-//            }
-            return null
-        }
+        if (!afterProtocol.matches(afterProtocolRegex)) return null
+
         val quipId = afterProtocol.substringAfter('/').takeWhile { it.isLetterOrDigit() }
         quipIdToDriveLink[quipId.lowercase()]?.let { return it }
 
-        val userEmail = userRepository.getUserEmail(quipId)
-        if (userEmail != null) {
-            val replacement = "mailto:$userEmail"
-//            require(link.endsWith("quip.com/$quipId", ignoreCase = true)) {
-//                "Link is expected to end with $quipId, but it is $link"
-//            } // do not allow anything after the user id
-            return replacement
-        }
+        userRepository.getUserEmail(quipId)?.let { return "mailto:$it" }
 
         return null
     }
 
     companion object {
-        private val afterProtocolRegex = Regex("([^.]*\\.)*quip\\.com/.+", RegexOption.IGNORE_CASE)
+        private val afterProtocolRegex = Regex("([\\w-]*\\.)*quip.com/[\\w-/#]+", RegexOption.IGNORE_CASE)
 
         fun fromDownloaded(): QuipUserAndDriveFileLinksReplacer {
             val quipIdToDriveLinkMapping = object {

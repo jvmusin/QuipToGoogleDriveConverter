@@ -2,12 +2,13 @@ package io.github.jvmusin
 
 import com.google.gson.JsonObject
 import kenichia.quipapi.QuipUser
+import org.apache.http.client.HttpResponseException
 import java.nio.file.Path
 import java.nio.file.Paths
 import kotlin.io.path.exists
 import kotlin.io.path.readText
 
-class QuipUserRepository {
+class QuipUserRepository private constructor() {
     data class QuipUserName(
         val formatted: String
     )
@@ -20,18 +21,34 @@ class QuipUserRepository {
 
     private val userIdToResource = getEmailByUserId()
     private val quipCache = hashMapOf<String, QuipUser>()
+    private fun requestUser(id: String): QuipUser? {
+        return quipCache.computeIfAbsent(id) {
+            withBackoff {
+                try {
+                    setupQuipClient()
+                    QuipUser.getUser(id)
+                } catch (e: HttpResponseException) {
+                    if (e.statusCode == 404 || e.statusCode == 400) NullQuipUser
+                    else throw e
+                }
+            }
+        }.unwrapNull()
+    }
 
-    fun getUser(id: String) = userIdToResource[id.lowercase()]
+    fun getUser(id: String) = userIdToResource[id.lowercase()] ?: run {
+        setupQuipClient()
+        val user = requestUser(id) ?: return@run null
+        if (user.name != null) {
+            QuipUserResource(user.id, emptyList(), QuipUserName(user.name))
+        } else {
+            null // this is a deleted user
+        }
+    }
 
     fun getUserName(id: String): String? {
         if (id != id.lowercase()) return getUserName(id.lowercase())
         userIdToResource[id]?.let { return it.name.formatted }
-        return try {
-            setupQuipClient()
-            quipCache.getOrPut(id) { QuipUser.getUser(id) }.name
-        } catch (e: Exception) {
-            null
-        }
+        return requestUser(id)?.name
     }
 
     private fun getUserEmails(id: String): List<String>? {
@@ -46,12 +63,12 @@ class QuipUserRepository {
         return getUserEmails(id)?.maxByOrNull { it.length }
     }
 
-    private companion object {
-        val extraEmailsPath: Path = Paths.get("quip_emails_extra.json")
+    companion object {
+        private val extraEmailsPath: Path = Paths.get("quip_emails_extra.json")
 
-        fun QuipUserResource.withLowercaseId() = copy(id = id.lowercase())
+        private fun QuipUserResource.withLowercaseId() = copy(id = id.lowercase())
 
-        fun getEmailByUserId(): Map<String, QuipUserResource> {
+        private fun getEmailByUserId(): Map<String, QuipUserResource> {
             val userIdToEmail = gson()
                 .fromJson(Paths.get("quip_users_scim.json").readText(), JsonObject::class.java)
                 .getAsJsonArray("Resources")
@@ -77,5 +94,9 @@ class QuipUserRepository {
             }
             return userIdToEmail + extraUserIdToEmail
         }
+
+        private val NullQuipUser = object : QuipUser(JsonObject()) {}
+        fun QuipUser.unwrapNull() = if (this === NullQuipUser) null else this
+        val INSTANCE = QuipUserRepository()
     }
 }
