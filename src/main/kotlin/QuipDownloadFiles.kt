@@ -1,6 +1,7 @@
 package io.github.jvmusin
 
 import kotlin.io.path.exists
+import kotlin.io.path.fileSize
 import kotlin.io.path.writeBytes
 
 object QuipDownloadFiles {
@@ -13,11 +14,12 @@ object QuipDownloadFiles {
     private object Downloader : ProcessAllFiles() {
         override fun visitFile(location: FileLocation) {
             val path = location.documentPath
-            if (path.exists()) {
+            if (path.exists() && path.fileSize() > 0) {
                 log("Skipping already downloaded file")
                 return
             }
             log("Downloading file")
+            // TODO: Skip for non-originals
             val bytes = withBackoff { location.type.download(location.json.quipThread()) }
             path.writeBytes(bytes)
             log("File downloaded")

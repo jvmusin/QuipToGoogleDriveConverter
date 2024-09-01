@@ -86,7 +86,7 @@ abstract class ProcessAllFiles(private val processName: String? = null) {
         }
     }
 
-    class FileLocation(
+    data class FileLocation(
         override val path: Path,
     ) : Location {
         override val id: String = path.nameWithoutExtension
@@ -125,9 +125,8 @@ abstract class ProcessAllFiles(private val processName: String? = null) {
             path.writeJson(newJson)
         }
 
-        fun isOriginal(): Boolean {
-            val mainFolder = json.quipThread().sharedFolderIds.getOrNull(0)
-            return path.resolveSibling("_folder.json").readFolderJson()!!.quipFolder().id == mainFolder
+        fun isOriginal() = requireNotNull(json.isOriginal) {
+            "isOriginal is not populated yet"
         }
     }
 

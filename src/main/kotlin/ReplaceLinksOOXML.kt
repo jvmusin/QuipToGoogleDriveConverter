@@ -22,6 +22,7 @@ abstract class ReplaceLinksOOXML(
 
         object : ProcessAllFiles() {
             override fun visitFile(location: FileLocation) {
+                if (!location.isOriginal()) return
                 val rebuiltDocument = rebuildDocument(location)
                 onFileProcessed(location, rebuiltDocument.content)
                 allReplacedLinks += rebuiltDocument.replacedLinks

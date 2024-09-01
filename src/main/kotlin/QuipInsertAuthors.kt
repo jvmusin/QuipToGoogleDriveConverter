@@ -86,8 +86,7 @@ object QuipInsertAuthors {
                 } else {
                     log("Author name saving only available for docx, saving file without changes")
                     location.withCommentsAndAuthorDocumentPath.writeBytes(
-                        location.withCommentsDocumentPath.readBytes(),
-                        StandardOpenOption.CREATE_NEW
+                        location.withCommentsDocumentPath.readBytes()
                     )
                 }
             }

@@ -7,7 +7,9 @@ object QuipDownloadAll {
         QuipMarkOriginalFiles.main(args)
         QuipDownloadFiles.main(args)
         QuipDownloadComments.main(args)
-        // TODO: Add a step here to collect all links
+
+        // TODO: Add opening-closing docs to check they're ok
+        // TODO: Add a step here to collect all links and report missing info
         QuipInsertComments.main(args) // TODO: Process comments text, replace links to users/documents with user names
         QuipInsertAuthors.main(args)
         DriveGenerateIds.main(args)

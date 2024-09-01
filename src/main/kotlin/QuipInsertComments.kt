@@ -18,6 +18,7 @@ import java.time.ZoneOffset
 import java.time.ZonedDateTime
 import java.util.*
 import javax.xml.datatype.DatatypeFactory
+import kotlin.io.path.copyTo
 import kotlin.io.path.readBytes
 import kotlin.io.path.writeBytes
 
@@ -102,7 +103,13 @@ object QuipInsertComments {
         val threads = requireNotNull(fileLocation.json.quipComments) {
             "Comments not downloaded"
         }
-        val docx = WordprocessingMLPackage.load(fileLocation.documentPath.toFile())
+        val inputPath = fileLocation.documentPath
+        val outputPath = fileLocation.withCommentsDocumentPath
+        if (threads.isEmpty()) {
+            inputPath.copyTo(outputPath, overwrite = true)
+            return
+        }
+        val docx = WordprocessingMLPackage.load(inputPath.toFile())
         val commentsPart = insertCommentsPart(docx)
         var commentId = 0
 
@@ -189,7 +196,7 @@ object QuipInsertComments {
             }
             validate()
         }
-        docx.save(fileLocation.withCommentsDocumentPath.toFile())
+        docx.save(outputPath.toFile())
     }
 
     private fun findAllTextBeforeTagWithId(id: String, html: Document): List<String> {
