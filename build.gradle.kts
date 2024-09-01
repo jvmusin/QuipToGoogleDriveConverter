@@ -18,9 +18,9 @@ fun registerRunTask(mainClass: String) = tasks.register(mainClass.decapitalizeAs
 }
 
 registerRunTask("QuipDownloadAll")
-registerRunTask("DriveUploadFiles")
-registerRunTask("DriveUpdateLinks")
-registerRunTask("DriveResetInfo")
+registerRunTask("ProcessDocuments")
+registerRunTask("DriveUploadAll")
+registerRunTask("FullCycle")
 
 group = "io.github.jvmusin"
 version = "1.0-SNAPSHOT"
