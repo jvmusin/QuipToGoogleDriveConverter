@@ -47,12 +47,9 @@ The files will be downloaded to `downloaded` folder in the root of the project.
 All these tasks are safe to re-run.
 Already downloaded/processed/uploaded files and folders will be skipped during subsequent runs.
 
-## Downloading private documents
+## Downloading private folder
 
-To download any particular (private) folder, replace the id of the root folder in project settings. All other steps will
-be the same as for downloading the default Quip directory.
-
-To change the root folder, follow the next steps:
+To download any particular folder, follow the next steps:
 
 1. Open the folder on Quip website and copy the id from the address bar, for example
    for https://yourcompany.quip.com/FXfSOQ5OETJH/Important-Docs the id will be `FXfSOQ5OETJH`.
