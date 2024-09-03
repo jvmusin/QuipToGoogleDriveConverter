@@ -1,6 +1,7 @@
 package io.github.jvmusin
 
 import com.google.api.client.auth.oauth2.Credential
+import com.google.api.client.auth.oauth2.TokenResponseException
 import com.google.api.client.extensions.java6.auth.oauth2.AuthorizationCodeInstalledApp
 import com.google.api.client.extensions.jetty.auth.oauth2.LocalServerReceiver
 import com.google.api.client.googleapis.auth.oauth2.GoogleAuthorizationCodeFlow
@@ -46,8 +47,16 @@ object DriveClientFactory {
         return credential
     }
 
-    fun createClient(): DriveClient {
-        return DriveClient(createRawClient())
+    private fun validateCredentials(drive: Drive) {
+        try {
+            val about = drive.about().get().setFields("user").execute()
+            getLogger().info("Successfully authenticated. User email: ${about.user.emailAddress}")
+        } catch (e: TokenResponseException) {
+            throw Exception(
+                "Google Drive user authentication failed. Try to delete $TOKENS_DIRECTORY_PATH folder and run again",
+                e
+            )
+        }
     }
 
     private fun createRawClient(): Drive {
@@ -55,6 +64,9 @@ object DriveClientFactory {
         val client = Drive.Builder(httpTransport, JSON_FACTORY, getCredentials(httpTransport))
             .setApplicationName(APPLICATION_NAME)
             .build()
+        validateCredentials(client)
         return client
     }
+
+    fun createClient(): DriveClient = DriveClient(createRawClient())
 }
