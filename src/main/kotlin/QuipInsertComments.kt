@@ -11,13 +11,23 @@ object QuipInsertComments {
                 when (location.type) {
                     QuipFileType.Docx -> {
                         log("Inserting comments into docx")
-                        QuipInsertCommentsDocx.insertComments(location)
+                        QuipInsertCommentsDocx.insertComments(
+                            location.documentPath,
+                            location.json.quipThread(),
+                            requireNotNull(location.json.quipComments),
+                            location.withCommentsDocumentPath
+                        )
                         log("Comments inserted")
                     }
 
                     QuipFileType.Spreadsheet -> {
                         log("Inserting comments into spreadsheet")
-                        QuipInsertCommentsSpreadsheet.insertComments(location)
+                        QuipInsertCommentsSpreadsheet.insertComments(
+                            location.documentPath,
+                            location.json.quipThread(),
+                            requireNotNull(location.json.quipComments),
+                            location.withCommentsDocumentPath
+                        )
                         log("Comments inserted")
                     }
 

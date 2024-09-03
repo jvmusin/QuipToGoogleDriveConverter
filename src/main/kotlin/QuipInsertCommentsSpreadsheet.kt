@@ -1,22 +1,26 @@
 package io.github.jvmusin
 
+import kenichia.quipapi.QuipThread
 import org.docx4j.openpackaging.packages.SpreadsheetMLPackage
 import org.docx4j.openpackaging.parts.PartName
 import org.docx4j.openpackaging.parts.SpreadsheetML.CommentsPart
 import org.docx4j.openpackaging.parts.SpreadsheetML.WorksheetPart
 import org.jsoup.Jsoup
 import org.xlsx4j.sml.*
+import java.nio.file.Path
 import java.time.Instant
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
+import kotlin.io.path.name
 
 object QuipInsertCommentsSpreadsheet {
-    fun insertComments(location: ProcessAllFiles.FileLocation) {
-        require(location.type == QuipFileType.Spreadsheet) {
-            "Not a spreadsheet"
-        }
-
-        val xlsx = SpreadsheetMLPackage.load(location.documentPath.toFile())
+    fun insertComments(
+        inputPath: Path,
+        quipThread: QuipThread,
+        threads: List<QuipDownloadComments.CommentsThread>,
+        outputPath: Path = inputPath.resolveSibling(inputPath.name.replace(".", "_with_comments."))
+    ) {
+        val xlsx = SpreadsheetMLPackage.load(inputPath.toFile())
         val sheets = xlsx.parts.parts
             .values
             .filterIsInstance<WorksheetPart>()
@@ -32,7 +36,8 @@ object QuipInsertCommentsSpreadsheet {
             commentList
         }
         initImportedSheet(
-            location,
+            quipThread,
+            threads,
             xlsx.createWorksheetPart(
                 PartName("/xl/worksheets/sheet${sheets.size + 1}.xml"),
                 "Imported",
@@ -40,15 +45,11 @@ object QuipInsertCommentsSpreadsheet {
             )
         )
 
-        val html = Jsoup.parse(location.json.quipThread().html)
+        val html = Jsoup.parse(quipThread.html)
         val tables = html.select("table")
 
-        val comments = requireNotNull(location.json.quipComments) {
-            "Comments not downloaded"
-        }
-
         val commentsOnTables = mutableSetOf<Int>()
-        for (comment in comments) {
+        for (comment in threads) {
             if (comment.section == QuipDownloadComments.CommentSection.DOCUMENT_CHAT ||
                 comment.section == QuipDownloadComments.CommentSection.DELETED_SECTION
             ) {
@@ -77,10 +78,14 @@ object QuipInsertCommentsSpreadsheet {
             )
         }
 
-        xlsx.save(location.withCommentsDocumentPath.toFile())
+        xlsx.save(outputPath.toFile())
     }
 
-    private fun initImportedSheet(location: ProcessAllFiles.FileLocation, worksheetPart: WorksheetPart) {
+    private fun initImportedSheet(
+        quipThread: QuipThread,
+        threads: List<QuipDownloadComments.CommentsThread>,
+        worksheetPart: WorksheetPart
+    ) {
         val worksheet = worksheetPart.contents
         worksheet.cols.add(Cols().also { c ->
             arrayOf(20, 20, 20, 80).forEachIndexed { index, w ->
@@ -98,17 +103,17 @@ object QuipInsertCommentsSpreadsheet {
                 row.r = 1
                 row.c.add(newCell("A1", "Spreadsheet author"))
                 val userRepository = QuipUserRepository.INSTANCE
-                val authorId = location.json.quipThread().authorId
+                val authorId = quipThread.authorId
                 val authorName = userRepository.getUserName(authorId)!!
                 row.c.add(newCell("B1", authorName))
             })
             rows.add(Row().also { row ->
                 row.r = 2
                 row.c.add(newCell("A2", "Created at"))
-                row.c.add(newTimestampCell("B2", location.json.quipThread().createdUsec))
+                row.c.add(newTimestampCell("B2", quipThread.createdUsec))
             })
 
-            val comments = location.json.quipComments!!
+            val comments = threads
             val chat = comments.filter { it.section == QuipDownloadComments.CommentSection.DOCUMENT_CHAT }
             require(chat.size <= 1)
             val deletedThreads = comments.filter { it.section == QuipDownloadComments.CommentSection.DELETED_SECTION }

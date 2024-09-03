@@ -1,6 +1,7 @@
 package io.github.jvmusin
 
 import jakarta.xml.bind.JAXBElement
+import kenichia.quipapi.QuipThread
 import org.docx4j.jaxb.Context
 import org.docx4j.openpackaging.packages.WordprocessingMLPackage
 import org.docx4j.openpackaging.parts.WordprocessingML.CommentsPart
@@ -13,12 +14,14 @@ import org.jsoup.select.NodeTraversor
 import org.jsoup.select.NodeVisitor
 import org.jvnet.jaxb2_commons.ppp.Child
 import java.math.BigInteger
+import java.nio.file.Path
 import java.time.Instant
 import java.time.ZoneOffset
 import java.time.ZonedDateTime
 import java.util.*
 import javax.xml.datatype.DatatypeFactory
 import kotlin.io.path.copyTo
+import kotlin.io.path.name
 
 object QuipInsertCommentsDocx {
     private val factory = Context.getWmlObjectFactory()
@@ -95,14 +98,11 @@ object QuipInsertCommentsDocx {
     }
 
     fun insertComments(
-        fileLocation: ProcessAllFiles.FileLocation
+        inputPath: Path,
+        quipThread: QuipThread,
+        threads: List<QuipDownloadComments.CommentsThread>,
+        outputPath: Path = inputPath.resolveSibling(inputPath.name.replace(".", "_with_comments."))
     ) {
-        require(fileLocation.type == QuipFileType.Docx)
-        val threads = requireNotNull(fileLocation.json.quipComments) {
-            "Comments not downloaded"
-        }
-        val inputPath = fileLocation.documentPath
-        val outputPath = fileLocation.withCommentsDocumentPath
         if (threads.isEmpty()) {
             inputPath.copyTo(outputPath, overwrite = true)
             return
@@ -164,7 +164,7 @@ object QuipInsertCommentsDocx {
             if (thread.section == QuipDownloadComments.CommentSection.DOCUMENT_CHAT ||
                 thread.section == QuipDownloadComments.CommentSection.DELETED_SECTION
             ) continue
-            val html = fileLocation.json.quipThread().html.let(Jsoup::parse)
+            val html = quipThread.html.let(Jsoup::parse)
 
             fun String.noSpace() = filter { !it.isWhitespace() }
 
