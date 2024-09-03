@@ -123,6 +123,7 @@ abstract class ProcessAllFiles(private val processName: String? = null, private 
         fun readFolderJson() = path.resolveSibling("_folder.json").readFolderJson()!!
 
         fun updateJson(block: FileJson.() -> Unit) {
+            require(json == readAgain().json)
             val newJson = json.copy().also(block)
             path.writeJson(newJson)
         }
@@ -138,7 +139,9 @@ abstract class ProcessAllFiles(private val processName: String? = null, private 
         override val id: String = json.quipFolder().id
         override val title: String = json.quipFolder().title
 
+        fun readAgain() = FolderLocation(path)
         fun updateJson(block: FolderJson.() -> Unit) {
+            require(json == readAgain().json)
             val newJson = json.copy().also(block)
             jsonPath.writeJson(newJson)
         }

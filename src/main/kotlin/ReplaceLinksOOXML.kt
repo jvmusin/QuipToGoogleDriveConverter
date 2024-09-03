@@ -20,7 +20,7 @@ abstract class ReplaceLinksOOXML(
         val unresolvedQuipLinks = mutableListOf<String>()
         val allReplacedLinks = mutableMapOf<String, String?>()
 
-        object : ProcessAllFiles("Replacing links in document", skipShortcuts = true) {
+        object : ProcessAllFiles("Replacing links in documents", skipShortcuts = true) {
             override fun visitFile(location: FileLocation) {
                 val rebuiltDocument = rebuildDocument(location)
                 onFileProcessed(location, rebuiltDocument.content)
