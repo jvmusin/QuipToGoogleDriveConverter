@@ -1,7 +1,5 @@
-import io.github.jvmusin.ProcessAllFiles
-import io.github.jvmusin.QuipFileType
-import io.github.jvmusin.QuipUserRepository
-import io.github.jvmusin.setupQuipClient
+package io.github.jvmusin
+
 import kenichia.quipapi.QuipUser
 import org.docx4j.jaxb.Context
 import org.docx4j.openpackaging.packages.WordprocessingMLPackage

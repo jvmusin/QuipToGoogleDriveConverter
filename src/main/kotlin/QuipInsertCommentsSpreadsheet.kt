@@ -10,7 +10,7 @@ import java.time.Instant
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 
-object QuipInsertCommentsSpreadsheets {
+object QuipInsertCommentsSpreadsheet {
     fun insertComments(location: ProcessAllFiles.FileLocation) {
         require(location.type == QuipFileType.Spreadsheet) {
             "Not a spreadsheet"
