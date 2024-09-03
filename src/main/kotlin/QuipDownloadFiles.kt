@@ -11,7 +11,7 @@ object QuipDownloadFiles {
         Downloader.run()
     }
 
-    private object Downloader : ProcessAllFiles() {
+    private object Downloader : ProcessAllFiles("Downloading files from Quip", skipShortcuts = true) {
         override fun visitFile(location: FileLocation) {
             val path = location.documentPath
             if (path.exists() && path.fileSize() > 0) {
@@ -19,7 +19,6 @@ object QuipDownloadFiles {
                 return
             }
             log("Downloading file")
-            // TODO: Skip for non-originals
             val bytes = withBackoff { location.type.download(location.json.quipThread()) }
             path.writeBytes(bytes)
             log("File downloaded")

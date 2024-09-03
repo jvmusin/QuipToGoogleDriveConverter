@@ -5,9 +5,8 @@ import kotlin.io.path.copyTo
 object QuipInsertComments {
     @JvmStatic
     fun main(args: Array<String>) {
-        object : ProcessAllFiles("Inserting comments into documents") {
+        object : ProcessAllFiles("Inserting comments into documents", skipShortcuts = true) {
             override fun visitFile(location: FileLocation) {
-                if (!location.isOriginal()) return
                 val threads = requireNotNull(location.json.quipComments)
                     .let { OOXMLUpdateLinks.updateLinks(it, replaceMailtoWithAt = true) }
                 val inputPath = location.documentPath

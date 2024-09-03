@@ -11,10 +11,8 @@ object OOXMLUpdateLinks {
     @JvmStatic
     fun main(args: Array<String>) {
         val lines = mutableListOf<String>()
-        object : ProcessAllFiles() {
+        object : ProcessAllFiles(skipShortcuts = true) {
             override fun visitFile(location: FileLocation) {
-                if (!location.isOriginal()) return
-
                 location.updateJson { updatedQuipComments = updateLinks(location.json.quipComments!!) }
 
                 val linksInRels = relsFinder.rebuildDocument(location)
@@ -25,15 +23,21 @@ object OOXMLUpdateLinks {
         Paths.get("unresolved_links.tsv").writeLines(lines)
     }
 
+    private fun String.replacePrefix(oldPrefix: String, newPrefix: String): String =
+        if (startsWith(oldPrefix)) newPrefix + removePrefix(oldPrefix) else this
+
     fun updateLinks(threads: List<CommentsThread>, replaceMailtoWithAt: Boolean = false): List<CommentsThread> =
         threads.map { thread ->
             val comments = thread.comments.map { comment ->
                 val linksToReplace = findLinksInText(comment.text)
                     .mapNotNull(::replaceLinkWithMaybeDroppingSomeSuffix)
                     .sortedByDescending { it.first.length } // longer links first
-                val newText = linksToReplace.fold(comment.text) { text, (old, new) ->
-                    val replacement = if (replaceMailtoWithAt) new.replace("mailto:", "@") else new
-                    text.replace(old, replacement)
+                val newText = linksToReplace.fold(comment.text) { text, (oldLink, newLink) ->
+                    val replacement = when {
+                        replaceMailtoWithAt -> newLink.replacePrefix("mailto:", "@")
+                        else -> newLink
+                    }
+                    text.replace(oldLink, replacement)
                 }
                 comment.copy(text = newText)
             }

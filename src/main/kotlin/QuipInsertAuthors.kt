@@ -27,7 +27,7 @@ object QuipInsertAuthors {
         }
 
         val authorIdToDocuments = hashMapOf<String, MutableList<ProcessAllFiles.FileLocation>>()
-        object : ProcessAllFiles("Collecting document authors") {
+        object : ProcessAllFiles("Collecting document authors", skipShortcuts = true) {
             override fun visitFile(location: FileLocation) {
                 authorIdToDocuments.computeIfAbsent(location.json.quipThread().authorId) { mutableListOf() }
                     .add(location)
@@ -62,7 +62,7 @@ object QuipInsertAuthors {
             }
         }
 
-        object : ProcessAllFiles("Saving author name in a document") {
+        object : ProcessAllFiles("Saving author name in a document", skipShortcuts = true) {
             override fun visitFile(location: FileLocation) {
                 if (location.type == QuipFileType.Docx) {
                     log("Writing author")

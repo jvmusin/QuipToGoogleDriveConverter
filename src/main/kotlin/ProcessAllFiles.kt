@@ -5,7 +5,7 @@ import java.nio.file.FileVisitResult
 import java.nio.file.Path
 import kotlin.io.path.*
 
-abstract class ProcessAllFiles(private val processName: String? = null) {
+abstract class ProcessAllFiles(private val processName: String? = null, private val skipShortcuts: Boolean = false) {
     private val progresses = ArrayDeque<Progress>()
     private var currentFileIndex = 0
     private var totalFilesCount = 0
@@ -29,6 +29,7 @@ abstract class ProcessAllFiles(private val processName: String? = null) {
             when (p) {
                 is FolderLocation -> processFolder(p, i, entries.size)
                 is FileLocation -> {
+                    if (skipShortcuts && !p.isOriginal()) continue
                     progresses.addLast(
                         progress().named(p.titleWithId).withIndex(i, entries.size)
                             .withPrefixIndex(currentFileIndex++, totalFilesCount)
@@ -76,6 +77,7 @@ abstract class ProcessAllFiles(private val processName: String? = null) {
         logger.info(progress().action(message))
     }
 
+    // TODO: sealed
     interface Location {
         val path: Path
         val id: String
@@ -126,7 +128,7 @@ abstract class ProcessAllFiles(private val processName: String? = null) {
         }
 
         fun isOriginal() = requireNotNull(json.isOriginal) {
-            "isOriginal is not populated yet"
+            "isOriginal is not populated"
         }
     }
 
@@ -139,13 +141,6 @@ abstract class ProcessAllFiles(private val processName: String? = null) {
         fun updateJson(block: FolderJson.() -> Unit) {
             val newJson = json.copy().also(block)
             jsonPath.writeJson(newJson)
-        }
-    }
-
-    companion object {
-        fun <T : ProcessAllFiles, R> T.runAndGet(get: T.() -> R): R {
-            run()
-            return get()
         }
     }
 }

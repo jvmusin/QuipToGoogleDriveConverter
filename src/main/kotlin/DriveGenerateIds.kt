@@ -1,6 +1,5 @@
 package io.github.jvmusin
 
-import io.github.jvmusin.ProcessAllFiles.Companion.runAndGet
 import io.github.jvmusin.ProcessAllFiles.FileLocation
 import io.github.jvmusin.ProcessAllFiles.FolderLocation
 import io.github.jvmusin.ProcessAllFiles.Location.Companion.titleWithId
@@ -9,7 +8,7 @@ object DriveGenerateIds {
     @JvmStatic
     fun main(args: Array<String>) {
         val originalLocationForDuplicates = getOriginalLocationForDuplicates()
-        val (fileLocations, folderLocations) = getFileAndFolderLocations(originalLocationForDuplicates)
+        val (fileLocations, folderLocations) = getFileAndFolderLocations()
 
         val driveClient = DriveClientFactory.createClient()
         val originalIds =
@@ -32,15 +31,11 @@ object DriveGenerateIds {
         require(!shortcutIds.hasNext())
     }
 
-    private fun getFileAndFolderLocations(
-        originalLocationForDuplicates: Map<FileLocation, FileLocation>
-    ): Pair<List<FileLocation>, List<FolderLocation>> {
+    private fun getFileAndFolderLocations(): Pair<List<FileLocation>, List<FolderLocation>> {
         val fileLocations = mutableListOf<FileLocation>()
         val folderLocations = mutableListOf<FolderLocation>()
-        object : ProcessAllFiles("Collecting original file locations") {
+        object : ProcessAllFiles("Collecting original file locations", skipShortcuts = true) {
             override fun visitFile(location: FileLocation) {
-                if (location in originalLocationForDuplicates)
-                    return
                 if (location.json.driveFileId == null)
                     fileLocations += location
             }
@@ -54,27 +49,24 @@ object DriveGenerateIds {
     }
 
     private fun getOriginalLocationForDuplicates(): Map<FileLocation, FileLocation> {
-        val duplicates = object : ProcessAllFiles("Locating duplicates") {
-            val duplicates = mutableListOf<FileLocation>()
+        val duplicates = mutableListOf<FileLocation>()
+        object : ProcessAllFiles("Locating duplicates", skipShortcuts = false) {
             override fun visitFile(location: FileLocation) {
                 if (!location.isOriginal()) duplicates += location
             }
-        }.runAndGet { duplicates }
-        return object : ProcessAllFiles("Locating originals for duplicates") {
-            val duplicateOriginal = mutableMapOf<FileLocation, FileLocation>()
+        }.run()
+        val duplicateOriginal = mutableMapOf<FileLocation, FileLocation>()
+        object : ProcessAllFiles("Locating originals for duplicates", skipShortcuts = true) {
             override fun visitFile(location: FileLocation) {
-                if (location.isOriginal()) {
-                    duplicates
-                        .filter { it.id == location.id }
-                        .forEach { duplicate ->
-                            require(duplicate !in duplicateOriginal)
-                            duplicateOriginal[duplicate] = location
-                        }
-                }
+                duplicates
+                    .filter { it.id == location.id }
+                    .forEach { duplicate ->
+                        require(duplicate !in duplicateOriginal)
+                        duplicateOriginal[duplicate] = location
+                    }
             }
-        }.runAndGet {
-            require(duplicateOriginal.keys == duplicates.toSet())
-            duplicateOriginal
-        }
+        }.run()
+        require(duplicateOriginal.keys == duplicates.toSet())
+        return duplicateOriginal
     }
 }

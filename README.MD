@@ -40,6 +40,7 @@ If there are 3000 files in a directory, they will be downloaded in at least 4 ho
 ## Standard transferring process
 
 1. Download all the files from Quip via `./_1_quipDownloadAll`. Re-running this task is safe.
+    1. Generate Google Drive ids `./_1a_driveGenerateIds`. This will improve links updating on the next step.
 2. Process files (add comments, add author line, check correctness) via `./_2_processDocuments`.
 3. Upload files to your own Google Drive via `./_3_driveUploadAll`.
 

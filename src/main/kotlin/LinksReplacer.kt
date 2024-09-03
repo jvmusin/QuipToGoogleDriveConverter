@@ -52,14 +52,13 @@ class QuipUserAndDriveFileLinksReplacer(
 
                 fun buildQuipIdToDriveLinkMapping(): Map<String, String> {
                     val quipIdToDriveLinkMapping = mutableMapOf<String, String>()
-                    object : ProcessAllFiles("Building Quip ID to Drive link mappings") {
+                    object : ProcessAllFiles("Building Quip ID to Drive link mappings", skipShortcuts = true) {
                         fun save(quipId: String, link: String) {
                             require(quipId !in quipIdToDriveLinkMapping)
                             quipIdToDriveLinkMapping[quipId] = link
                         }
 
                         override fun visitFile(location: FileLocation) {
-                            if (!location.isOriginal()) return
                             val driveFileId = location.json.driveFileId ?: return
                             val quipThread = location.json.quipThread()
                             save(

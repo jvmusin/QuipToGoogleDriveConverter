@@ -29,7 +29,7 @@ object QuipDownloadComments {
         }
     }
 
-    private class Visitor : ProcessAllFiles("Downloading comments from Quip") {
+    private class Visitor : ProcessAllFiles("Downloading comments from Quip", skipShortcuts = true) {
         private fun downloadAllComments(threadId: String): List<QuipMessage> {
             val packSize = 100
             val allMessages = TreeSet<QuipMessage>(compareBy { it.id })

@@ -9,7 +9,8 @@ object DriveUploadFiles {
     }
 
     private class ShortcutUploader(private val client: DriveClient) : ProcessAllFiles(
-        "Uploading shortcuts on Google Drive"
+        "Uploading shortcuts on Google Drive",
+        skipShortcuts = false
     ) {
         override fun visitFile(location: FileLocation) {
             if (location.isOriginal()) return
@@ -32,18 +33,14 @@ object DriveUploadFiles {
     }
 
     private class FileAndFolderUploader(private val client: DriveClient) : ProcessAllFiles(
-        "Uploading original files on Google Drive"
+        "Uploading original files on Google Drive",
+        skipShortcuts = true
     ) {
         private val driveFolderIdStack = mutableListOf<String>()
         private val foundIds = mutableSetOf<String>()
         private fun currentDriveFolder() = driveFolderIdStack.lastOrNull()
 
         override fun visitFile(location: FileLocation) {
-            if (!location.isOriginal()) {
-                log("Skipping a shortcut, will be uploaded later")
-                return
-            }
-
             val driveFileId = location.json.driveFileId!!
             if (driveFileId in foundIds) {
                 log("File already uploaded, skipping")
