@@ -1,39 +1,44 @@
 package io.github.jvmusin
 
+import io.github.jvmusin.QuipDownloadComments.CommentsThread
 import java.nio.file.Path
 import java.nio.file.Paths
+import kotlin.io.path.readBytes
+import kotlin.io.path.writeBytes
 import kotlin.io.path.writeLines
 
-object OOXMLFindLinks {
+object OOXMLUpdateLinks {
     @JvmStatic
     fun main(args: Array<String>) {
-        val userRepository = QuipUserRepository.INSTANCE
         val lines = mutableListOf<String>()
-        val allLinksInComments = mutableListOf<String>()
         object : ProcessAllFiles() {
             override fun visitFile(location: FileLocation) {
                 if (!location.isOriginal()) return
-                val unresolvedLinksInComments = location.json.quipComments!!
-                    .flatMap { t -> t.comments.map { c -> c.text } }
-                    .flatMap(::findLinksInText)
-                    .filter { replaceLinkWithMaybeDroppingSomeSuffix(it) == null }
-                allLinksInComments += unresolvedLinksInComments
+
+                location.updateJson { updatedQuipComments = updateLinks(location.json.quipComments!!) }
+
                 val linksInRels = relsFinder.rebuildDocument(location)
-                val unresolvedLinks =
-                    linksInRels.replacedLinks.filter {
-                        it.value == null && it.key.contains(
-                            "quip.com",
-                            ignoreCase = true
-                        ) && false // only take comments for now
-                    }.keys + unresolvedLinksInComments
-                unresolvedLinks.map { link ->
-                    val author = userRepository.getUserName(location.json.quipThread().authorId)
-                    "${location.title}\t${author}\t${location.json.quipThread().link}\t$link"
-                }.let { lines.addAll(it) }
+                val content = linksInRels.content ?: location.documentPath.readBytes()
+                location.withCommentsAndAuthorAndLinksDocumentPath.writeBytes(content)
             }
         }.run()
         Paths.get("unresolved_links.tsv").writeLines(lines)
     }
+
+    fun updateLinks(threads: List<CommentsThread>, replaceMailtoWithAt: Boolean = false): List<CommentsThread> =
+        threads.map { thread ->
+            val comments = thread.comments.map { comment ->
+                val linksToReplace = findLinksInText(comment.text)
+                    .mapNotNull(::replaceLinkWithMaybeDroppingSomeSuffix)
+                    .sortedByDescending { it.first.length } // longer links first
+                val newText = linksToReplace.fold(comment.text) { text, (old, new) ->
+                    val replacement = if (replaceMailtoWithAt) new.replace("mailto:", "@") else new
+                    text.replace(old, replacement)
+                }
+                comment.copy(text = newText)
+            }
+            thread.copy(comments = comments)
+        }
 
     val linksReplacer = QuipUserAndDriveFileLinksReplacer.fromDownloaded()
     val relsFinder = object : ReplaceLinksOOXML(linksReplacer) {

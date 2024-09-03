@@ -53,24 +53,27 @@ class QuipUserAndDriveFileLinksReplacer(
                 fun buildQuipIdToDriveLinkMapping(): Map<String, String> {
                     val quipIdToDriveLinkMapping = mutableMapOf<String, String>()
                     object : ProcessAllFiles("Building Quip ID to Drive link mappings") {
+                        fun save(quipId: String, link: String) {
+                            require(quipId !in quipIdToDriveLinkMapping)
+                            quipIdToDriveLinkMapping[quipId] = link
+                        }
+
                         override fun visitFile(location: FileLocation) {
                             if (!location.isOriginal()) return
+                            val driveFileId = location.json.driveFileId ?: return
                             val quipThread = location.json.quipThread()
-                            val quipId = extractQuipId(quipThread.link)
-                            val driveFileId = requireNotNull(location.json.driveFileId) {
-                                "File is not uploaded to Google Drive yet"
-                            }
-                            require(quipId !in quipIdToDriveLinkMapping)
-                            quipIdToDriveLinkMapping[quipId] = buildDriveFileLink(driveFileId, quipThread.type)
+                            save(
+                                quipId = extractQuipId(quipThread.link),
+                                link = buildDriveFileLink(driveFileId, quipThread.type)
+                            )
                         }
 
                         override fun beforeVisitFolder(location: FolderLocation) {
-                            val folderId = requireNotNull(location.json.driveFolderId) {
-                                "Folder is not uploaded to Google Drive yet"
-                            }
-                            val quipId = extractQuipId(location.json.quipFolder().link)
-                            require(quipId !in quipIdToDriveLinkMapping)
-                            quipIdToDriveLinkMapping[quipId] = "https://drive.google.com/drive/folders/$folderId"
+                            val folderId = location.json.driveFolderId ?: return
+                            save(
+                                quipId = extractQuipId(location.json.quipFolder().link),
+                                link = "https://drive.google.com/drive/folders/$folderId"
+                            )
                         }
                     }.run()
                     return quipIdToDriveLinkMapping

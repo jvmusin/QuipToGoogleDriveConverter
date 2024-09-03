@@ -61,9 +61,8 @@ To download any particular folder, follow the next steps:
 
 The following parts are upcoming
 
-- Replace mentions and document links/folder links/chat links in comments to their equivalents in Google Drive
 - Use authors' name and date of the comment in xlsx files
 - Add an ability to scan the whole Quip root folder and find/download private files
 
-If you want your private files have as much information transferred as possible, please wait until the features above
+If you want your private files to have as much information transferred as possible, please wait until the features above
 are ready.
