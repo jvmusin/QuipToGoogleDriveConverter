@@ -3,7 +3,6 @@ package io.github.jvmusin
 import com.google.gson.JsonObject
 import kenichia.quipapi.QuipUser
 import org.apache.http.client.HttpResponseException
-import java.nio.file.Path
 import java.nio.file.Paths
 import kotlin.io.path.exists
 import kotlin.io.path.readText
@@ -17,12 +16,14 @@ class QuipUserRepository private constructor() {
         val id: String,
         val emails: List<String>,
         val name: QuipUserName,
-    )
+    ) {
+        fun formattedName() = name.formatted
+    }
 
-    private val userIdToResource = getEmailByUserId()
+    private val userIdToResource = getUserIdToUserInfo()
     private val quipCache = hashMapOf<String, QuipUser>()
-    private fun requestUser(id: String): QuipUser? {
-        return quipCache.computeIfAbsent(id) {
+    private fun requestUser(id: String): QuipUser? =
+        quipCache.computeIfAbsent(id.lowercase()) {
             withBackoff {
                 try {
                     setupQuipClient()
@@ -33,22 +34,18 @@ class QuipUserRepository private constructor() {
                 }
             }
         }.unwrapNull()
-    }
 
     fun getUser(id: String) = userIdToResource[id.lowercase()] ?: run {
-        setupQuipClient()
         val user = requestUser(id) ?: return@run null
         if (user.name != null) {
-            QuipUserResource(user.id, emptyList(), QuipUserName(user.name))
+            QuipUserResource(user.id, user.emails.orEmpty().asList(), QuipUserName(user.name))
         } else {
             null // this is a deleted user
         }
     }
 
     fun getUserName(id: String): String? {
-        if (id != id.lowercase()) return getUserName(id.lowercase())
-        userIdToResource[id]?.let { return it.name.formatted }
-        return requestUser(id)?.name
+        return getUser(id)?.formattedName()
     }
 
     private fun getUserEmails(id: String): List<String>? {
@@ -59,22 +56,28 @@ class QuipUserRepository private constructor() {
     /**
      * Returns the longest email for the user.
      */
-    fun getUserEmail(id: String): String? {
-        return getUserEmails(id)?.maxByOrNull { it.length }
-    }
+    fun getUserEmail(id: String): String? = getUserEmails(id)?.maxByOrNull { it.length }
 
     companion object {
-        private val extraEmailsPath: Path = Paths.get("quip_emails_extra.json")
+        private val scimPath = Paths.get("quip_users_scim.json")
+        private val extraEmailsPath = Paths.get("quip_emails_extra.json")
 
         private fun QuipUserResource.withLowercaseId() = copy(id = id.lowercase())
 
-        private fun getEmailByUserId(): Map<String, QuipUserResource> {
-            val userIdToEmail = gson()
-                .fromJson(Paths.get("quip_users_scim.json").readText(), JsonObject::class.java)
-                .getAsJsonArray("Resources")
-                .map { gson().fromJson(it, QuipUserResource::class.java).withLowercaseId() }
-                .associateBy { it.id.lowercase() }
-            val extraUserIdToEmail = if (extraEmailsPath.exists()) {
+        private fun loadScimUsers(): Map<String, QuipUserResource> =
+            if (scimPath.exists()) {
+                gson()
+                    .fromJson(Paths.get("quip_users_scim.json").readText(), JsonObject::class.java)
+                    .getAsJsonArray("Resources")
+                    .map { gson().fromJson(it, QuipUserResource::class.java).withLowercaseId() }
+                    .associateBy { it.id.lowercase() }
+            } else {
+                getLogger().warning("File with SCIM users not found at $scimPath")
+                emptyMap()
+            }
+
+        private fun loadExtraUsers(userIdToEmail: Map<String, QuipUserResource>): Map<String, QuipUserResource> =
+            if (extraEmailsPath.exists()) {
                 gson()
                     .fromJson(extraEmailsPath.readText(), JsonObject::class.java)
                     .asJsonObject
@@ -90,13 +93,19 @@ class QuipUserRepository private constructor() {
                         id to QuipUserResource(id, listOfNotNull(email), QuipUserName(name))
                     }
             } else {
+                getLogger().warning("File with extra users not found at $extraEmailsPath")
                 emptyMap()
             }
+
+
+        private fun getUserIdToUserInfo(): Map<String, QuipUserResource> {
+            val userIdToEmail = loadScimUsers()
+            val extraUserIdToEmail = loadExtraUsers(userIdToEmail)
             return userIdToEmail + extraUserIdToEmail
         }
 
         private val NullQuipUser = object : QuipUser(JsonObject()) {}
-        fun QuipUser.unwrapNull() = if (this === NullQuipUser) null else this
+        private fun QuipUser.unwrapNull() = if (this === NullQuipUser) null else this
         val INSTANCE = QuipUserRepository()
     }
 }

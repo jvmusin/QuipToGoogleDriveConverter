@@ -5,7 +5,6 @@ import io.github.jvmusin.setupQuipClient
 import kenichia.quipapi.QuipUser
 import org.docx4j.jaxb.Context
 import org.docx4j.openpackaging.packages.WordprocessingMLPackage
-import java.nio.file.StandardOpenOption
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import kotlin.io.path.readBytes
@@ -26,7 +25,7 @@ object QuipInsertAuthors {
                 user.emails.size == 1 -> ", email ${user.emails.single()}"
                 else -> ", emails ${user.emails.joinToString(", ")}"
             }
-            return "Author: ${user.name.formatted}" + email
+            return "Author: ${user.formattedName()}" + email
         }
 
         val authorIdToDocuments = hashMapOf<String, MutableList<ProcessAllFiles.FileLocation>>()
