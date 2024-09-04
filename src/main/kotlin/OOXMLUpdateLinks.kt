@@ -2,27 +2,8 @@ package io.github.jvmusin
 
 import io.github.jvmusin.QuipDownloadComments.CommentsThread
 import java.nio.file.Path
-import java.nio.file.Paths
-import kotlin.io.path.readBytes
-import kotlin.io.path.writeBytes
-import kotlin.io.path.writeLines
 
 object OOXMLUpdateLinks {
-    @JvmStatic
-    fun main(args: Array<String>) {
-        val lines = mutableListOf<String>()
-        object : ProcessAllFiles(skipShortcuts = true) {
-            override fun visitFile(location: FileLocation) {
-                location.updateJson { updatedQuipComments = updateLinks(location.json.quipComments!!) }
-
-                val linksInRels = relsFinder.rebuildDocument(location)
-                val content = linksInRels.content ?: location.documentPath.readBytes()
-                location.withCommentsAndAuthorAndLinksDocumentPath.writeBytes(content)
-            }
-        }.run()
-        Paths.get("unresolved_links.tsv").writeLines(lines)
-    }
-
     private fun String.replacePrefix(oldPrefix: String, newPrefix: String): String =
         if (startsWith(oldPrefix)) newPrefix + removePrefix(oldPrefix) else this
 
