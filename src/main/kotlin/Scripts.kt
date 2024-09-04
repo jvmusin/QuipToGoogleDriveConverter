@@ -19,6 +19,15 @@ object ProcessDocuments {
         QuipInsertComments.main(args)
         QuipInsertAuthors.main(args)
         DriveUpdateLinks.main(args)
+        dumpCachedUsers() // at this point we can collect all requested users
+    }
+
+    private fun dumpCachedUsers() {
+        val userRepository = QuipUserRepository.INSTANCE
+        val cachedUsers = userRepository.getCachedUsers()
+        if (cachedUsers.isEmpty()) return
+        val instruction = UnknownUsersInstructionBuilder.build(cachedUsers.map { it.id })
+        getLogger().warning("To improve links rebuilding, you need to provide emails for some users\n$instruction")
     }
 }
 

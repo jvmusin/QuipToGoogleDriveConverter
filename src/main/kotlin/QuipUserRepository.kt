@@ -35,6 +35,8 @@ class QuipUserRepository private constructor() {
             }
         }.unwrapNull()
 
+    fun getCachedUsers(): List<QuipUser> = quipCache.values.filter { it.name != null }
+
     fun getUser(id: String) = userIdToResource[id.lowercase()] ?: run {
         val user = requestUser(id) ?: return@run null
         if (user.name != null) {
@@ -44,14 +46,9 @@ class QuipUserRepository private constructor() {
         }
     }
 
-    fun getUserName(id: String): String? {
-        return getUser(id)?.formattedName()
-    }
+    fun getUserName(id: String): String? = getUser(id)?.formattedName()
 
-    private fun getUserEmails(id: String): List<String>? {
-        // QuipUser returns users without emails, so don't bother checking it in the quipCache
-        return getUser(id)?.emails
-    }
+    private fun getUserEmails(id: String): List<String>? = getUser(id)?.emails
 
     /**
      * Returns the longest email for the user.
@@ -96,7 +93,6 @@ class QuipUserRepository private constructor() {
                 getLogger().warning("File with extra users not found at $extraEmailsPath")
                 emptyMap()
             }
-
 
         private fun getUserIdToUserInfo(): Map<String, QuipUserResource> {
             val userIdToEmail = loadScimUsers()

@@ -1,6 +1,5 @@
 package io.github.jvmusin
 
-import kenichia.quipapi.QuipUser
 import org.docx4j.jaxb.Context
 import org.docx4j.openpackaging.packages.WordprocessingMLPackage
 import java.time.ZoneOffset
@@ -34,32 +33,17 @@ object QuipInsertAuthors {
             }
         }.run()
         val absentAuthors = authorIdToDocuments.filterKeys { userRepository.getUser(it) == null }
-        fun tryGetUser(id: String) = try {
-            QuipUser.getUser(id)
-        } catch (e: Exception) {
-            null
-        }
+
         require(absentAuthors.isEmpty()) {
-            setupQuipClient()
-            buildString {
-                appendLine("Found unknown authors, please add them to a file quip_emails_extra.json in the root of the project")
-                appendLine("Format for the file is below (you can omit the \":email\" part)")
-                appendLine("{")
-                val lastAuthor = absentAuthors.toList().last().first
-                for (author in absentAuthors.keys) {
-                    val user = tryGetUser(author)?.name ?: "FirstName LastName"
-                    append("\t\"$author\": \"$user:email@example.com\"")
-                    if (author != lastAuthor) append(',')
-                    appendLine()
-                }
-                appendLine("}")
-                appendLine()
+            val instruction = UnknownUsersInstructionBuilder.build(absentAuthors.keys)
+            val documents = buildString {
                 appendLine("Below is a list of links to files by these authors")
                 for ((author, locations) in absentAuthors) {
                     val links = locations.joinToString(" ") { "https://quip.com/${it.id}" }
                     appendLine("$author: $links")
                 }
             }
+            "To add document authors, you need to provide names of some document authors\n$instruction\n$documents"
         }
 
         object : ProcessAllFiles("Saving author name in a document", skipShortcuts = true) {
