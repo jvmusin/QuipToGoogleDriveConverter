@@ -90,7 +90,6 @@ abstract class ReplaceLinksOOXML(
     ): RebuiltDocument<String> {
         val links = extractLinksFromRels(fileContent)
         var result = fileContent
-        val replacements = mutableMapOf<String, String>()
 
         fun String.withTarget(): String = "Target=\"$this\""
         fun String.replaceAndCheck(a: String, b: String): String = replace(a, b).also {
@@ -101,7 +100,7 @@ abstract class ReplaceLinksOOXML(
         for ((link, replacement) in allReplacedLinks.filterNonNull()) {
             result = result.replaceAndCheck(link.withTarget(), replacement.withTarget())
         }
-        return RebuiltDocument(result.takeIf { replacements.isNotEmpty() }, allReplacedLinks, location)
+        return RebuiltDocument(result.takeIf { allReplacedLinks.isNotEmpty() }, allReplacedLinks, location)
     }
 
     fun extractLinksFromRels(rels: String) = Jsoup.parse(rels).select("Relationship").map { it.attr("Target") }
