@@ -12,9 +12,10 @@ object DriveUpdateLinks {
             override fun chooseInputFilePath(fileLocation: FileLocation): Path =
                 fileLocation.withCommentsAndAuthorDocumentPath
 
-            override fun ProcessAllFiles.onFileProcessed(fileLocation: FileLocation, updatedContent: ByteArray?) {
+            override fun ProcessAllFiles.onFileProcessed(rebuiltDocument: RebuiltDocument<ByteArray>) {
+                val fileLocation = rebuiltDocument.location
                 val destinationFile = fileLocation.withCommentsAndAuthorAndLinksDocumentPath
-                val content = updatedContent ?: chooseInputFilePath(fileLocation).readBytes()
+                val content = rebuiltDocument.content ?: chooseInputFilePath(fileLocation).readBytes()
                 destinationFile.writeBytes(content)
             }
         }.run()

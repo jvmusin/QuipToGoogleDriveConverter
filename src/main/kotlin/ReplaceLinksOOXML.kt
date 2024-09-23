@@ -23,7 +23,7 @@ abstract class ReplaceLinksOOXML(
         object : ProcessAllFiles("Replacing links in documents", skipShortcuts = true) {
             override fun visitFile(location: FileLocation) {
                 val rebuiltDocument = rebuildDocument(location)
-                onFileProcessed(location, rebuiltDocument.content)
+                onFileProcessed(rebuiltDocument)
                 allReplacedLinks += rebuiltDocument.replacedLinks
                 rebuiltDocument.replacedLinks
                     .filterValues { it == null }.keys
@@ -38,7 +38,7 @@ abstract class ReplaceLinksOOXML(
         Paths.get("unresolved_quip_links.tsv").writeLines(unresolvedQuipLinks)
     }
 
-    open fun ProcessAllFiles.onFileProcessed(fileLocation: FileLocation, updatedContent: ByteArray?) {}
+    open fun ProcessAllFiles.onFileProcessed(rebuiltDocument: RebuiltDocument<ByteArray>) {}
     abstract fun chooseInputFilePath(fileLocation: FileLocation): Path
 
     data class RebuiltDocument<T>(val content: T?, val replacedLinks: Map<String, String?>, val location: FileLocation)
