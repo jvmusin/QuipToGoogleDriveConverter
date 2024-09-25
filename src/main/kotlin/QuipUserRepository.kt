@@ -37,7 +37,9 @@ class QuipUserRepository private constructor() {
 
     fun getCachedUsers(): List<QuipUser> = quipCache.values.filter { it.name != null }
 
-    fun getUser(id: String) = userIdToResource[id.lowercase()] ?: run {
+    private fun getCachedUser(id: String) = userIdToResource[id.lowercase()]
+
+    fun getUser(id: String) = getCachedUser(id) ?: run {
         val user = requestUser(id) ?: return@run null
         if (user.name != null) {
             QuipUserResource(user.id, user.emails.orEmpty().asList(), QuipUserName(user.name))
@@ -48,7 +50,7 @@ class QuipUserRepository private constructor() {
 
     fun getUserName(id: String): String? = getUser(id)?.formattedName()
 
-    private fun getUserEmails(id: String): List<String>? = getUser(id)?.emails
+    private fun getUserEmails(id: String): List<String>? = getCachedUser(id)?.emails
 
     /**
      * Returns the longest email for the user.
