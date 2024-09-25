@@ -4,20 +4,17 @@ import io.github.jvmusin.ProcessAllFiles.FileLocation
 import org.jsoup.Jsoup
 import java.io.ByteArrayOutputStream
 import java.nio.file.Path
-import java.nio.file.Paths
 import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
 import java.util.zip.ZipOutputStream
 import kotlin.io.path.extension
 import kotlin.io.path.inputStream
-import kotlin.io.path.writeLines
 
 abstract class ReplaceLinksOOXML(
     private val linksReplacer: LinksReplacer
 ) {
     fun run() {
         val userRepository = QuipUserRepository.INSTANCE
-        val unresolvedQuipLinks = mutableListOf<String>()
         val allReplacedLinks = mutableMapOf<String, String?>()
 
         object : ProcessAllFiles("Replacing links in documents", skipShortcuts = true) {
@@ -30,12 +27,10 @@ abstract class ReplaceLinksOOXML(
                     .filter { "quip.com" in it.lowercase() }
                     .forEach { link ->
                         val author = userRepository.getUserName(location.json.quipThread().authorId)
-                        unresolvedQuipLinks += "${location.title}\t${author}\t${location.json.quipThread().link}\t$link"
+                        appendUnresolvedLink(location.title, author.orEmpty(), location.json.quipThread().link, link)
                     }
             }
         }.run()
-
-        Paths.get("unresolved_quip_links.tsv").writeLines(unresolvedQuipLinks)
     }
 
     open fun ProcessAllFiles.onFileProcessed(rebuiltDocument: RebuiltDocument<ByteArray>) {}

@@ -101,7 +101,7 @@ object QuipInsertCommentsDocx {
         inputPath: Path,
         quipThread: QuipThread,
         threads: List<QuipDownloadComments.CommentsThread>,
-        outputPath: Path = inputPath.resolveSibling(inputPath.name.replace(".", "_with_comments."))
+        outputPath: Path,
     ) {
         if (threads.isEmpty()) {
             inputPath.copyTo(outputPath, overwrite = true)

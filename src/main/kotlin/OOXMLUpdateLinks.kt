@@ -1,17 +1,31 @@
 package io.github.jvmusin
 
 import io.github.jvmusin.QuipDownloadComments.CommentsThread
-import java.nio.file.Path
 
 object OOXMLUpdateLinks {
     private fun String.replacePrefix(oldPrefix: String, newPrefix: String): String =
         if (startsWith(oldPrefix)) newPrefix + removePrefix(oldPrefix) else this
 
-    fun updateLinks(threads: List<CommentsThread>, replaceMailtoWithAt: Boolean = false): List<CommentsThread> =
-        threads.map { thread ->
+    fun updateLinksInComments(
+        location: ProcessAllFiles.FileLocation,
+        replaceMailtoWithAt: Boolean = false
+    ): List<CommentsThread> =
+        requireNotNull(location.json.quipComments).map { thread ->
             val comments = thread.comments.map { comment ->
                 val linksToReplace = findLinksInText(comment.text)
-                    .mapNotNull(::replaceLinkWithMaybeDroppingSomeSuffix)
+                    .mapNotNull { link ->
+                        val replacement = replaceLinkWithMaybeDroppingSomeSuffix(link)
+                        if (replacement == null) {
+                            val author = QuipUserRepository.INSTANCE.getUserName(location.json.quipThread().authorId)
+                            appendUnresolvedLink(
+                                documentTitle = location.title,
+                                author = author.orEmpty(),
+                                linkToADocument = location.json.quipThread().link,
+                                unresolvedLink = link
+                            )
+                        }
+                        replacement
+                    }
                     .sortedByDescending { it.first.length } // longer links first
                 val newText = linksToReplace.fold(comment.text) { text, (oldLink, newLink) ->
                     val replacement = when {
@@ -25,14 +39,9 @@ object OOXMLUpdateLinks {
             thread.copy(comments = comments)
         }
 
-    val linksReplacer = QuipUserAndDriveFileLinksReplacer.fromDownloaded()
-    val relsFinder = object : ReplaceLinksOOXML(linksReplacer) {
-        override fun chooseInputFilePath(fileLocation: ProcessAllFiles.FileLocation): Path {
-            return fileLocation.documentPath
-        }
-    }
+    private val linksReplacer = QuipUserAndDriveFileLinksReplacer.fromDownloaded()
 
-    fun replaceLinkWithMaybeDroppingSomeSuffix(link: String): Pair<String, String>? {
+    private fun replaceLinkWithMaybeDroppingSomeSuffix(link: String): Pair<String, String>? {
         val replaced = linksReplacer.replaceLink(link)
         return when {
             replaced != null -> link to replaced
@@ -41,7 +50,7 @@ object OOXMLUpdateLinks {
         }
     }
 
-    fun findLinksInText(text: String): List<String> {
+    private fun findLinksInText(text: String): List<String> {
         val linkRegex = Regex("https://([\\w-]*\\.)*quip.com/[\\w-/#]+", RegexOption.IGNORE_CASE)
 
         // TODO: Try look-ahead

@@ -7,8 +7,7 @@ object QuipInsertComments {
     fun main(args: Array<String>) {
         object : ProcessAllFiles("Inserting comments into documents", skipShortcuts = true) {
             override fun visitFile(location: FileLocation) {
-                val threads = requireNotNull(location.json.quipComments)
-                    .let { OOXMLUpdateLinks.updateLinks(it, replaceMailtoWithAt = true) }
+                val threads = OOXMLUpdateLinks.updateLinksInComments(location, replaceMailtoWithAt = true)
                 val inputPath = location.documentPath
                 val outputPath = location.withCommentsDocumentPath
                 val quipThread = location.json.quipThread()

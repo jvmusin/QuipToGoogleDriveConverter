@@ -27,6 +27,15 @@ val downloadedPath: Path = downloadedRootPath.resolve(Settings.read().quipFolder
 val downloadedUsersPath: Path = downloadedRootPath.resolve("_users")
 val downloadedPrivateFilesPath: Path = downloadedRootPath.resolve("_private")
 
+val unresolvedLinksPath: Path = Paths.get("unresolved_links.csv")
+fun resetUnresolvedLinksFile() {
+    unresolvedLinksPath.writeText("Document Name\tDocument Author\tDocument Link\tRefers to\tRefers to type\tNotes\n")
+}
+
+fun appendUnresolvedLink(documentTitle: String, author: String, linkToADocument: String, unresolvedLink: String) {
+    unresolvedLinksPath.appendLines(listOf("$documentTitle\t$author\t$linkToADocument\t$unresolvedLink"))
+}
+
 private var quipClientInitialized = false
 fun Any.setupQuipClient(debug: Boolean = false) {
     if (quipClientInitialized) return

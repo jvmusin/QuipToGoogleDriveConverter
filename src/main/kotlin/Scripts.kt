@@ -15,10 +15,12 @@ object ProcessDocuments {
     fun main(args: Array<String>) {
         // TODO: Add opening-closing docs to check they're ok
         // TODO: Add a step here to collect all links and report missing info
+        resetUnresolvedLinksFile()
         // Run DriveGenerateIds beforehand to have more links replaced
+        if (DriveClientFactory.credentialsExist()) DriveGenerateIds.main(args)
+        DriveUpdateLinks.main(args)
         QuipInsertComments.main(args)
         QuipInsertAuthors.main(args)
-        DriveUpdateLinks.main(args)
         dumpCachedUsers() // at this point we can collect all requested users
     }
 

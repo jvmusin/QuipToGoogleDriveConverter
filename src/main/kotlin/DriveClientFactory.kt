@@ -69,4 +69,5 @@ object DriveClientFactory {
     }
 
     fun createClient(): DriveClient = DriveClient(createRawClient())
+    fun credentialsExist() = Paths.get(CREDENTIALS_FILE_PATH).exists()
 }
