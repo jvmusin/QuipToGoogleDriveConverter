@@ -18,9 +18,9 @@ object ProcessDocuments {
         resetUnresolvedLinksFile()
         // Run DriveGenerateIds beforehand to have more links replaced
         if (DriveClientFactory.credentialsExist()) DriveGenerateIds.main(args)
-        DriveUpdateLinks.main(args)
         QuipInsertComments.main(args)
         QuipInsertAuthors.main(args)
+        DriveUpdateLinks.main(args)
         dumpCachedUsers() // at this point we can collect all requested users
     }
 
