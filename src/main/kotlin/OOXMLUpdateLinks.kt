@@ -51,7 +51,7 @@ object OOXMLUpdateLinks {
     }
 
     private fun findLinksInText(text: String): List<String> {
-        val linkRegex = Regex("https://([\\w-]*\\.)*quip.com/[\\w-/#:]+", RegexOption.IGNORE_CASE)
+        val linkRegex = Regex("https://([\\w-]*\\.)*quip.com/[\\w-/]+(#[\\w-:]*)?", RegexOption.IGNORE_CASE)
 
         // TODO: Try look-ahead
         return text.split(Regex("https://")).drop(1).map { "https://$it" }
