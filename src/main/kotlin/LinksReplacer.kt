@@ -32,7 +32,7 @@ class QuipUserAndDriveFileLinksReplacer(
     }
 
     companion object {
-        private val afterProtocolRegex = Regex("([\\w-]*\\.)*quip.com/[\\w-/: #]+", RegexOption.IGNORE_CASE)
+        private val afterProtocolRegex = Regex("([\\w-]*\\.)*quip.com/.+", RegexOption.IGNORE_CASE)
 
         fun fromDownloaded(): QuipUserAndDriveFileLinksReplacer {
             val quipIdToDriveLinkMapping = object {
