@@ -1,6 +1,5 @@
-import io.github.jvmusin.ProcessAllFiles
-import io.github.jvmusin.QuipUserRepository
-import io.github.jvmusin.getLogger
+package io.github.jvmusin
+
 import java.nio.file.Paths
 import kotlin.io.path.writeLines
 
@@ -13,8 +12,7 @@ object QuipExtractAllUsers {
         val allUsers = mutableSetOf<String>()
         object : ProcessAllFiles() {
             override fun visitFile(location: FileLocation) {
-                val accessLevels = location.json.quip.getAsJsonObject("access_levels")
-                allUsers += accessLevels.keySet()
+                allUsers.add(location.json.quipThread().authorId)
             }
         }.run()
         val userRepository = QuipUserRepository.INSTANCE
