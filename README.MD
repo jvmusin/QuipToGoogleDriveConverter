@@ -62,6 +62,7 @@ To download any particular folder, follow the next steps:
 
 The following parts are upcoming
 
+- Handle BLOB files
 - Replace links from Quip folders to Drive folders
 - Use authors' name and date of the comment in xlsx files
 - Add an ability to scan the whole Quip root folder and find/download private files
