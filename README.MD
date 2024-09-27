@@ -64,7 +64,6 @@ The following parts are upcoming
 
 - Handle BLOB files
 - Use authors' name and date of the comment in xlsx files
-- Add an ability to scan the whole Quip root folder and find/download private files
 
 If you want your private files to have as much information transferred as possible, please wait until the features above
 are ready.
