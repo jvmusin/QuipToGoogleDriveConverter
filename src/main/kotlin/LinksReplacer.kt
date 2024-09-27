@@ -72,8 +72,9 @@ class QuipUserAndDriveFileLinksReplacer(
                     val quipIdToDriveLinkMapping = mutableMapOf<String, String>()
                     object : ProcessAllFiles("Building Quip ID to Drive link mappings", skipShortcuts = true) {
                         fun save(quipId: String, link: String) {
-                            require(quipId !in quipIdToDriveLinkMapping)
-                            quipIdToDriveLinkMapping[quipId] = link
+                            val oldValue = quipIdToDriveLinkMapping[quipId]
+                            if (oldValue == null) quipIdToDriveLinkMapping[quipId] = link
+                            else require(oldValue == link)
                         }
 
                         override fun visitFile(location: FileLocation) {
@@ -97,12 +98,16 @@ class QuipUserAndDriveFileLinksReplacer(
                                 quipId = extractQuipId(quipFolder.link),
                                 link = "https://drive.google.com/drive/folders/$folderId"
                             )
+                            save(
+                                quipId = quipFolder.id.lowercase(),
+                                link = "https://drive.google.com/drive/folders/$folderId"
+                            )
                         }
                     }.run()
                     return quipIdToDriveLinkMapping
                 }
             }.buildQuipIdToDriveLinkMapping()
-            val extraMappings = readCustomIdReplacements().orEmpty().mapNotNull { (quipId, realQuipId) ->
+            val extraMappings = readCustomIdReplacements().mapNotNull { (quipId, realQuipId) ->
                 val replacement = quipIdToDriveLinkMapping[realQuipId.lowercase()] ?: run {
                     getLogger().warning("Not found mapping for id $realQuipId")
                     return@mapNotNull null
