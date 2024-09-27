@@ -1,6 +1,9 @@
 package io.github.jvmusin
 
+import com.google.gson.JsonArray
 import kenichia.quipapi.QuipThread
+import java.nio.file.Paths
+import kotlin.io.path.readText
 
 interface LinksReplacer {
     fun replaceLink(link: String): String?
@@ -35,6 +38,21 @@ class QuipUserAndDriveFileLinksReplacer(
         private val afterProtocolRegex = Regex("([\\w-]*\\.)*quip.com/.+", RegexOption.IGNORE_CASE)
 
         fun fromDownloaded(): QuipUserAndDriveFileLinksReplacer {
+            /**
+             * Returns mapping from one quip folder id to another one.
+             *
+             * Useful when multiple ids are assigned to the same quip folder.
+             */
+            fun readCustomIdReplacements(): Map<String, String>? {
+                return gson().fromJson(
+                    Paths.get("extra_quip_id_replacements.jsonc").readText(), JsonArray::class.java
+                ).associate { replacement ->
+                    val quipId = replacement.asJsonObject.getAsJsonPrimitive("quipId").asString!!
+                    val realQuipId = replacement.asJsonObject.getAsJsonPrimitive("realQuipId").asString!!
+                    quipId to realQuipId
+                }
+            }
+
             val quipIdToDriveLinkMapping = object {
                 fun extractQuipId(quipLink: String): String {
                     require(quipLink.startsWith("https://jetbrains.quip.com/")) {
@@ -61,16 +79,22 @@ class QuipUserAndDriveFileLinksReplacer(
                         override fun visitFile(location: FileLocation) {
                             val driveFileId = location.json.driveFileId ?: return
                             val quipThread = location.json.quipThread()
+                            val link = buildDriveFileLink(driveFileId, quipThread.type)
                             save(
                                 quipId = extractQuipId(quipThread.link),
-                                link = buildDriveFileLink(driveFileId, quipThread.type)
+                                link = link
+                            )
+                            save(
+                                quipId = quipThread.id.lowercase(),
+                                link = link
                             )
                         }
 
                         override fun beforeVisitFolder(location: FolderLocation) {
                             val folderId = location.json.driveFolderId ?: return
+                            val quipFolder = location.json.quipFolder()
                             save(
-                                quipId = extractQuipId(location.json.quipFolder().link),
+                                quipId = extractQuipId(quipFolder.link),
                                 link = "https://drive.google.com/drive/folders/$folderId"
                             )
                         }
@@ -78,7 +102,14 @@ class QuipUserAndDriveFileLinksReplacer(
                     return quipIdToDriveLinkMapping
                 }
             }.buildQuipIdToDriveLinkMapping()
-            return QuipUserAndDriveFileLinksReplacer(quipIdToDriveLinkMapping)
+            val extraMappings = readCustomIdReplacements().orEmpty().mapNotNull { (quipId, realQuipId) ->
+                val replacement = quipIdToDriveLinkMapping[realQuipId.lowercase()] ?: run {
+                    getLogger().warning("Not found mapping for id $realQuipId")
+                    return@mapNotNull null
+                }
+                quipId.lowercase() to replacement
+            }.toMap()
+            return QuipUserAndDriveFileLinksReplacer(quipIdToDriveLinkMapping + extraMappings)
         }
     }
 }

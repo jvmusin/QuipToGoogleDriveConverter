@@ -1,0 +1,16 @@
+[
+  {
+    // this is a wrong quip id which we want to replace
+    "quipId": "lHh5Ov8cY22s",
+    // this is a correct quip id (equal to id in _folder.json for example)
+    "realQuipId": "RMHAOAWSLhc"
+  },
+  {
+    "quipId": "IXSGO0jHYiaw",
+    "realQuipId": "CPKAOALxWtp"
+  },
+  {
+    "quipId": "hvLYOQkkTBBr",
+    "realQuipId": "LePAOAH86GN"
+  }
+]
