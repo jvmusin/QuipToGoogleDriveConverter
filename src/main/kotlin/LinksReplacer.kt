@@ -39,11 +39,11 @@ class QuipUserAndDriveFileLinksReplacer(
 
         fun fromDownloaded(): QuipUserAndDriveFileLinksReplacer {
             /**
-             * Returns mapping from one quip folder id to another one.
+             * Returns mapping from one quip id to another one.
              *
-             * Useful when multiple ids are assigned to the same quip folder.
+             * Useful when multiple ids are assigned to the same quip document or folder.
              */
-            fun readCustomIdReplacements(): Map<String, String>? {
+            fun readCustomIdReplacements(): Map<String, String> {
                 return gson().fromJson(
                     Paths.get("extra_quip_id_replacements.jsonc").readText(), JsonArray::class.java
                 ).associate { replacement ->
