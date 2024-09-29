@@ -22,6 +22,7 @@ registerRunTask("ProcessDocuments")
 registerRunTask("DriveUploadAll")
 registerRunTask("DriveGenerateIds")
 registerRunTask("QuipExtractAllUsers")
+registerRunTask("CollectMigratedFilesTsv")
 
 group = "io.github.jvmusin"
 version = "1.0-SNAPSHOT"

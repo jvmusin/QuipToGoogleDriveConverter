@@ -1,7 +1,6 @@
 package io.github.jvmusin
 
 import com.google.gson.JsonArray
-import kenichia.quipapi.QuipThread
 import java.nio.file.Paths
 import kotlin.io.path.readText
 
@@ -59,13 +58,6 @@ class QuipUserAndDriveFileLinksReplacer(
                         "Wrong format for the link (does not start with https://jetbrains.quip.com/) $quipLink"
                     }
                     return quipLink.removePrefix("https://jetbrains.quip.com/").lowercase()
-                }
-
-                fun buildDriveFileLink(driveFileId: String, threadType: QuipThread.Type) = when (threadType) {
-                    QuipThread.Type.DOCUMENT -> "https://docs.google.com/document/d/$driveFileId"
-                    QuipThread.Type.SPREADSHEET -> "https://docs.google.com/spreadsheets/d/$driveFileId"
-                    QuipThread.Type.SLIDES -> "https://drive.google.com/file/d/$driveFileId"
-                    QuipThread.Type.CHAT -> error("Chats not supported")
                 }
 
                 fun buildQuipIdToDriveLinkMapping(): Map<String, String> {

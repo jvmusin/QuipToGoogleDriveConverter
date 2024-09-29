@@ -36,6 +36,13 @@ fun appendUnresolvedLink(documentTitle: String, author: String, linkToADocument:
     unresolvedLinksPath.appendLines(listOf("$documentTitle\t$author\t$linkToADocument\t$unresolvedLink"))
 }
 
+fun buildDriveFileLink(driveFileId: String, threadType: QuipThread.Type) = when (threadType) {
+    QuipThread.Type.DOCUMENT -> "https://docs.google.com/document/d/$driveFileId"
+    QuipThread.Type.SPREADSHEET -> "https://docs.google.com/spreadsheets/d/$driveFileId"
+    QuipThread.Type.SLIDES -> "https://drive.google.com/file/d/$driveFileId"
+    QuipThread.Type.CHAT -> error("Chats not supported")
+}
+
 private var quipClientInitialized = false
 fun Any.setupQuipClient(debug: Boolean = false) {
     if (quipClientInitialized) return
